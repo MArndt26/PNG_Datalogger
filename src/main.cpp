@@ -25,7 +25,7 @@ String dataString = "";
 
 int time = 0;
 
-extern STATE curState;
+STATE curState = IDLE;
 
 void setup()
 {
@@ -52,17 +52,17 @@ void setup()
 
 void loop()
 {
-	if (isrCount / 1000 != prevIsrCount / 1000)
-	{
-		time = millis();
+	// if (isrCount / 1000 != prevIsrCount / 1000)
+	// {
+	// 	time = millis();
 
-		Serial.print("time: ");
-		Serial.println(time);
+	// 	Serial.print("time: ");
+	// 	Serial.println(time);
 
-		Serial.print("isrCount: ");
-		Serial.println(isrCount);
-		prevIsrCount = isrCount;
-	}
+	// 	Serial.print("isrCount: ");
+	// 	Serial.println(isrCount);
+	// 	prevIsrCount = isrCount;
+	// }
 
 	switch (curState)
 	{

@@ -1,7 +1,10 @@
+#ifndef _STATE_H
+#define _STATE_H
+
 enum STATE
 {
     IDLE,
     RUNNING
 };
 
-STATE curState = IDLE;
+#endif /* _STATE_H */

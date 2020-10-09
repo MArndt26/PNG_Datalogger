@@ -1,10 +1,27 @@
 #include <Arduino.h>
 
+#include "serial.h"
+#include "state.h"
+
+extern STATE curState;
+
 void serialEvent()
 {
-    while (Serial.available())
+    char rx = 0;
+    while (Serial.available()) //get most recent byte sent
     {
-        char rx = (char)Serial.read();
-        Serial.print(rx);
+        rx = (char)Serial.read();
+    }
+
+    switch (rx)
+    {
+    case START:
+        curState = RUNNING;
+        break;
+    case HALT:
+        curState = IDLE;
+        break;
+    case CREATE_FILE:
+        break;
     }
 }
