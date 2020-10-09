@@ -1,9 +1,9 @@
 /*
   SD card datalogger
- 
- This example shows how to log data from three analog sensors 
+
+ This example shows how to log data from three analog sensors
  to an SD card using the SD library.
- 	
+
  The circuit:
  * analog sensors on analog ins 0, 1, and 2
  * SD card attached to SPI bus as follows:
@@ -11,17 +11,20 @@
  ** MISO - pin 12
  ** CLK - pin 13, pin 14 on Teensy with audio board
  ** CS - pin 4,  pin 10 on Teensy with audio board
- 
+
  created  24 Nov 2010
  modified 9 Apr 2012
  by Tom Igoe
- 
+
  This example code is in the public domain.
- 	 
+
  */
 
 #include <SD.h>
 #include <SPI.h>
+
+//private function declartations
+void timerISR();
 
 // On the Ethernet Shield, CS is pin 4. Note that even if it's not
 // used as the CS pin, the hardware CS pin (10 on most Arduino boards,
@@ -37,7 +40,22 @@
 // Wiz820+SD board: pin 4
 // Teensy 2.0: pin 0
 // Teensy++ 2.0: pin 20
+
+//private variable declarations
 const int chipSelect = BUILTIN_SDCARD;
+
+const int period = 500; //period in microseconds
+
+IntervalTimer timer; // Create an IntervalTimer object
+
+volatile int prevIsrCount = -1;
+
+volatile int isrCount = 0;
+
+volatile int writeReady = 0;
+
+// make a string for assembling the data to log:
+String dataString = "";
 
 void setup()
 {
@@ -62,13 +80,46 @@ void setup()
 		return;
 	}
 	Serial.println("card initialized.");
+
+	timer.begin(timerISR, period);
 }
 
 void loop()
 {
-	// make a string for assembling the data to log:
-	String dataString = "";
+	if (isrCount / 1000 != prevIsrCount / 1000)
+	{
+		Serial.print("isrCount: ");
+		Serial.println(isrCount);
+		prevIsrCount = isrCount;
+	}
 
+	if (writeReady)
+	{
+		writeReady = 0;
+		// open the file.
+		File dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+		// if the file is available, write to it:
+		if (dataFile)
+		{
+			dataFile.println(dataString);
+			dataFile.close();
+			// print to the serial port too:
+			// Serial.println(dataString);
+		}
+		// if the file isn't open, pop up an error:
+		else
+		{
+			Serial.println("error opening datalog.txt");
+		}
+	}
+}
+
+void timerISR()
+{
+	isrCount++;
+
+	dataString = "";
 	// read three sensors and append to the string:
 	for (int analogPin = 0; analogPin < 3; analogPin++)
 	{
@@ -79,21 +130,5 @@ void loop()
 			dataString += ",";
 		}
 	}
-
-	// open the file.
-	File dataFile = SD.open("datalog.txt", FILE_WRITE);
-
-	// if the file is available, write to it:
-	if (dataFile)
-	{
-		dataFile.println(dataString);
-		dataFile.close();
-		// print to the serial port too:
-		Serial.println(dataString);
-	}
-	// if the file isn't open, pop up an error:
-	else
-	{
-		Serial.println("error opening datalog.txt");
-	}
+	writeReady = 1;
 }
