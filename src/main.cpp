@@ -2,6 +2,7 @@
 #include <SPI.h>
 
 #include "state.h"
+#include "serial.h"
 
 //private function declartations
 void timerISR();
@@ -106,13 +107,4 @@ void timerISR()
 		dataString += ",";
 	}
 	writeReady = 1;
-}
-
-void serialEvent()
-{
-	while (Serial.available())
-	{
-		char rx = (char)Serial.read();
-		Serial.print(rx);
-	}
 }
