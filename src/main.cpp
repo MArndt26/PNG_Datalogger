@@ -148,16 +148,16 @@ void loop()
 	}
 	case WRITE:
 	{
-		// dataString = "";
+		dataString = "";
 		// read three sensors and append to the string:
 		for (int analogPin = 0; analogPin < 10; analogPin++)
 		{
 			int sensor = analogRead(analogPin);
-			dataFile.print(sensor);
-			writeBuf[analogPin] = sensor;
-			// dataString += String(sensor);
+			// dataFile.print(sensor);
+			// writeBuf[analogPin] = sensor;
+			dataString += String(sensor);
 
-			// dataString += ",";
+			dataString += ",";
 		}
 		// curState = WRITE;
 		// numConversions++;
