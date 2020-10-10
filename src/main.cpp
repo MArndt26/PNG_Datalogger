@@ -45,6 +45,8 @@ const int period = 250; //period in microseconds
 
 //---------------BUFFER VARS----------------//
 String dataString = "";
+const int writeBufSize = 10;
+int writeBuf[writeBufSize];
 
 //---------------TIME VARS------------------//
 
@@ -82,7 +84,7 @@ void setup()
 	}
 	Serial.println("card initialized.");
 
-	sleepTimer.setTimer(period / 1000); //milliseconds
+	// sleepTimer.setTimer(period / 1000); //milliseconds
 }
 
 void loop()
@@ -132,7 +134,7 @@ void loop()
 			break;
 		}
 
-		timer.begin(timerISR, period); //start data collection timer
+		// timer.begin(timerISR, period); //start data collection timer
 
 		Serial.println("Timer Started...");
 		time = millis();
@@ -146,15 +148,30 @@ void loop()
 	}
 	case WRITE:
 	{
-		dataFile.println(dataString);
+		// dataString = "";
+		// read three sensors and append to the string:
+		for (int analogPin = 0; analogPin < 10; analogPin++)
+		{
+			int sensor = analogRead(analogPin);
+			dataFile.print(sensor);
+			writeBuf[analogPin] = sensor;
+			// dataString += String(sensor);
+
+			// dataString += ",";
+		}
+		// curState = WRITE;
+		// numConversions++;
+
+		// dataFile.println(dataString);
+		// dataFile.print(writeBuf, 10);
 		numWrite++;
-		curState = AWAIT;
+
 		break;
 	}
 	case CLOSE:
 	{
 		Serial.println("Closing File...");
-		timer.end(); //stop data collection timer
+		// timer.end(); //stop data collection timer
 		dataFile.close();
 
 		time = millis() - time;
@@ -176,22 +193,10 @@ void loop()
 	}
 }
 
-void timerISR()
-{
-	isrCount++;
+// void timerISR()
+// {
 
-	dataString = "";
-	// read three sensors and append to the string:
-	for (int analogPin = 0; analogPin < 10; analogPin++)
-	{
-		int sensor = analogRead(analogPin);
-		dataString += String(sensor);
-
-		dataString += ",";
-	}
-	curState = WRITE;
-	numConversions++;
-}
+// }
 
 void serialEvent()
 {
