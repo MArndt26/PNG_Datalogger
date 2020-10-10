@@ -1,31 +1,51 @@
 #include <SD.h>
 #include <SPI.h>
 
-#include "state.h"
-#include "serial.h"
-
-//private function declartations
+//private function declarations
 void timerISR();
 
-//private variable declarations
-const int chipSelect = BUILTIN_SDCARD;
+void serialEvent();
 
-const int period = 500; //period in microseconds
+//private enumerations
+enum SERIAL_CMD
+{
+	CREATE_FILE_CMD = 'c',
+	START_CMD = 's',
+	HALT_CMD = 'h',
+};
+
+enum STATE
+{
+	IDLE,
+	CREATE_FILE,
+	FILE_LOADED,
+	OPEN_FILE,
+	AWAIT,
+	WRITE,
+	CLOSE_FILE
+};
+
+//private variables
+//----------------STATE VARS-----------------//
+STATE curState = IDLE;
+
+//----------------TIMER VARS-----------------//
+volatile int isrCount = 0;
 
 IntervalTimer timer; // Create an IntervalTimer object
 
-volatile int prevIsrCount = -1;
-
-volatile int isrCount = 0;
-
 volatile int writeReady = 0;
 
-// make a string for assembling the data to log:
+const int period = 500; //period in microseconds
+
+//---------------BUFFER VARS----------------//
 String dataString = "";
 
-int time = 0;
+//---------------TIME VARS------------------//
 
-STATE curState = IDLE;
+volatile int prevIsrCount = -1;
+
+int time = 0;
 
 void setup()
 {
@@ -39,7 +59,7 @@ void setup()
 	Serial.print("Initializing SD card...");
 
 	// see if the card is present and can be initialized:
-	if (!SD.begin(chipSelect))
+	if (!SD.begin(BUILTIN_SDCARD))
 	{
 		Serial.println("Card failed, or not present");
 		// don't do anything more:
@@ -52,23 +72,19 @@ void setup()
 
 void loop()
 {
-	// if (isrCount / 1000 != prevIsrCount / 1000)
-	// {
-	// 	time = millis();
-
-	// 	Serial.print("time: ");
-	// 	Serial.println(time);
-
-	// 	Serial.print("isrCount: ");
-	// 	Serial.println(isrCount);
-	// 	prevIsrCount = isrCount;
-	// }
-
 	switch (curState)
 	{
 	case IDLE:
 		break;
-	case RUNNING:
+	case CREATE_FILE:
+		break;
+	case FILE_LOADED:
+		break;
+	case OPEN_FILE:
+		break;
+	case AWAIT:
+		break;
+	case WRITE:
 		if (writeReady)
 		{
 			writeReady = 0;
@@ -90,6 +106,8 @@ void loop()
 			}
 		}
 		break;
+	case CLOSE_FILE:
+		break;
 	}
 }
 
@@ -107,4 +125,25 @@ void timerISR()
 		dataString += ",";
 	}
 	writeReady = 1;
+}
+
+void serialEvent()
+{
+	char rx = 0;
+	while (Serial.available()) //get most recent byte sent
+	{
+		rx = (char)Serial.read();
+	}
+
+	switch (rx)
+	{
+	case START_CMD:
+		curState = AWAIT;
+		break;
+	case HALT_CMD:
+		curState = IDLE;
+		break;
+	case CREATE_FILE_CMD:
+		break;
+	}
 }
