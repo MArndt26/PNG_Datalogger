@@ -41,7 +41,7 @@ volatile int isrCount = 0;
 
 IntervalTimer timer; // Create an IntervalTimer object
 
-const int period = 500; //period in microseconds
+const int period = 250; //period in microseconds
 
 //---------------BUFFER VARS----------------//
 String dataString = "";
@@ -57,7 +57,8 @@ File dataFile;
 char fName[10];
 
 //---------------COUNT VARS-----------------//
-int numWrite = 0;
+volatile int numWrite = 0;
+volatile int numConversions = 0;
 
 //---------------LED VARS--------------------//
 int ledstate = 0;
@@ -134,14 +135,12 @@ void loop()
 		timer.begin(timerISR, period); //start data collection timer
 
 		Serial.println("Timer Started...");
-		Serial.print("Timestamp: ");
-		Serial.print(millis());
+		time = millis();
 		curState = AWAIT;
 		break;
 	}
 	case AWAIT:
 	{
-		asm volatile("wfi");
 		curState = WRITE;
 		break;
 	}
@@ -158,12 +157,19 @@ void loop()
 		timer.end(); //stop data collection timer
 		dataFile.close();
 
-		Serial.print("Timestamp: ");
-		Serial.print(millis());
+		time = millis() - time;
+		Serial.print("Write Time: ");
+		Serial.println(time);
 
 		Serial.println("File Closed:");
 		Serial.print("numWrite: ");
 		Serial.println(numWrite);
+		Serial.print("numConversions: ");
+		Serial.println(numConversions);
+		Serial.print("Write Freq: ");
+		Serial.println(numWrite * 1000 / time);
+		Serial.print("Conversion Freq: ");
+		Serial.println(numConversions * 10 * 1000 / time);
 		curState = IDLE;
 		break;
 	}
@@ -183,6 +189,8 @@ void timerISR()
 
 		dataString += ",";
 	}
+	curState = WRITE;
+	numConversions++;
 }
 
 void serialEvent()
