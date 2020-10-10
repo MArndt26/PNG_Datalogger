@@ -1,5 +1,6 @@
 #include <SD.h>
 #include <SPI.h>
+#include <Snooze.h>
 
 //private function declarations
 void timerISR();
@@ -19,22 +20,26 @@ enum STATE
 	IDLE,
 	CREATE_FILE,
 	FILE_LOADED,
-	OPEN_FILE,
+	PREPARE,
 	AWAIT,
 	WRITE,
-	CLOSE_FILE
+	CLOSE
 };
 
 //private variables
 //----------------STATE VARS-----------------//
 STATE curState = IDLE;
 
+//----------------SNOOZE VARS----------------//
+SnoozeTimer sleepTimer;
+SnoozeUSBSerial sleepUSB;
+
+SnoozeBlock config(sleepTimer, sleepUSB);
+
 //----------------TIMER VARS-----------------//
 volatile int isrCount = 0;
 
 IntervalTimer timer; // Create an IntervalTimer object
-
-volatile int writeReady = 0;
 
 const int period = 500; //period in microseconds
 
@@ -45,16 +50,25 @@ String dataString = "";
 
 volatile int prevIsrCount = -1;
 
-int time = 0;
+unsigned long time = 0;
+
+//---------------FILE VARS------------------//
+File dataFile;
+char fName[10];
+
+//---------------COUNT VARS-----------------//
+int numWrite = 0;
+
+//---------------LED VARS--------------------//
+int ledstate = 0;
 
 void setup()
 {
+	pinMode(LED_BUILTIN, OUTPUT);
 	// Open serial communications and wait for port to open:
 	Serial.begin(9600);
 	while (!Serial)
-	{
 		; // wait for serial port to connect.
-	}
 
 	Serial.print("Initializing SD card...");
 
@@ -67,7 +81,7 @@ void setup()
 	}
 	Serial.println("card initialized.");
 
-	timer.begin(timerISR, period); //start data collection timer
+	sleepTimer.setTimer(period / 1000); //milliseconds
 }
 
 void loop()
@@ -75,39 +89,84 @@ void loop()
 	switch (curState)
 	{
 	case IDLE:
+	{
+		// Serial.println("Entering IDLE...");
+		// Snooze.deepSleep(config);
+		digitalWrite(LED_BUILTIN, ledstate);
+		ledstate = !ledstate;
+		delay(500);
+		asm volatile("wfi");
 		break;
+	}
 	case CREATE_FILE:
-		break;
-	case FILE_LOADED:
-		break;
-	case OPEN_FILE:
-		break;
-	case AWAIT:
-		break;
-	case WRITE:
-		if (writeReady)
+	{
+		Serial.println("Creating File...");
+		int fNum = -1;
+		do
 		{
-			writeReady = 0;
-			// open the file.
-			File dataFile = SD.open("datalog.txt", FILE_WRITE);
+			fNum++;
+			sprintf(fName, "F%d.txt", fNum);
+		} while (SD.exists(fName));
 
-			// if the file is available, write to it:
-			if (dataFile)
-			{
-				dataFile.println(dataString);
-				dataFile.close();
-				// print to the serial port too:
-				Serial.println(dataString);
-			}
-			// if the file isn't open, pop up an error:
-			else
-			{
-				Serial.println("error opening datalog.txt");
-			}
+		Serial.print("Filename Created: ");
+		Serial.println(fName);
+
+		curState = FILE_LOADED;
+		break;
+	}
+	case FILE_LOADED:
+	{
+		asm volatile("wfi");
+		break;
+	}
+	case PREPARE:
+	{
+		Serial.println("Preparing File for Run...");
+		dataFile = SD.open(fName, FILE_WRITE); //create file
+
+		if (!dataFile)
+		{
+			Serial.println("error opening file");
+			curState = IDLE;
+			break;
 		}
+
+		timer.begin(timerISR, period); //start data collection timer
+
+		Serial.println("Timer Started...");
+		Serial.print("Timestamp: ");
+		Serial.print(millis());
+		curState = AWAIT;
 		break;
-	case CLOSE_FILE:
+	}
+	case AWAIT:
+	{
+		asm volatile("wfi");
+		curState = WRITE;
 		break;
+	}
+	case WRITE:
+	{
+		dataFile.println(dataString);
+		numWrite++;
+		curState = AWAIT;
+		break;
+	}
+	case CLOSE:
+	{
+		Serial.println("Closing File...");
+		timer.end(); //stop data collection timer
+		dataFile.close();
+
+		Serial.print("Timestamp: ");
+		Serial.print(millis());
+
+		Serial.println("File Closed:");
+		Serial.print("numWrite: ");
+		Serial.println(numWrite);
+		curState = IDLE;
+		break;
+	}
 	}
 }
 
@@ -124,7 +183,6 @@ void timerISR()
 
 		dataString += ",";
 	}
-	writeReady = 1;
 }
 
 void serialEvent()
@@ -135,15 +193,27 @@ void serialEvent()
 		rx = (char)Serial.read();
 	}
 
+	Serial.println(rx);
+
 	switch (rx)
 	{
+	case CREATE_FILE_CMD:
+		if (curState == IDLE)
+		{
+			curState = CREATE_FILE;
+		}
+		break;
 	case START_CMD:
-		curState = AWAIT;
+		if (curState == FILE_LOADED)
+		{
+			curState = PREPARE;
+		}
 		break;
 	case HALT_CMD:
-		curState = IDLE;
-		break;
-	case CREATE_FILE_CMD:
+		if (curState == AWAIT || curState == WRITE)
+		{
+			curState = CLOSE;
+		}
 		break;
 	}
 }
