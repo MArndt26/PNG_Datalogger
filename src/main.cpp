@@ -1,232 +1,129 @@
+/*
+  SD card datalogger
+ 
+ This example shows how to log data from three analog sensors 
+ to an SD card using the SD library.
+ 	
+ The circuit:
+ * analog sensors on analog ins 0, 1, and 2
+ * SD card attached to SPI bus as follows:
+ ** MOSI - pin 11, pin 7 on Teensy with audio board
+ ** MISO - pin 12
+ ** CLK - pin 13, pin 14 on Teensy with audio board
+ ** CS - pin 4,  pin 10 on Teensy with audio board
+ 
+ created  24 Nov 2010
+ modified 9 Apr 2012
+ by Tom Igoe
+ 
+ This example code is in the public domain.
+ 	 
+ */
+
 #include <SD.h>
 #include <SPI.h>
-#include <Snooze.h>
 
-//private function declarations
-void timerISR();
+// On the Ethernet Shield, CS is pin 4. Note that even if it's not
+// used as the CS pin, the hardware CS pin (10 on most Arduino boards,
+// 53 on the Mega) must be left as an output or the SD library
+// functions will not work.
 
-void serialEvent();
+// change this to match your SD shield or module;
+// Arduino Ethernet shield: pin 4
+// Adafruit SD shields and modules: pin 10
+// Sparkfun SD shield: pin 8
+// Teensy audio board: pin 10
+// Teensy 3.5 & 3.6 & 4.1 on-board: BUILTIN_SDCARD
+// Wiz820+SD board: pin 4
+// Teensy 2.0: pin 0
+// Teensy++ 2.0: pin 20
+const int chipSelect = BUILTIN_SDCARD;
 
-//private enumerations
-enum SERIAL_CMD
-{
-	CREATE_FILE_CMD = 'c',
-	START_CMD = 's',
-	HALT_CMD = 'h',
-};
+const int numChannels = 10;
 
-enum STATE
-{
-	IDLE,
-	CREATE_FILE,
-	FILE_LOADED,
-	PREPARE,
-	AWAIT,
-	WRITE,
-	CLOSE
-};
-
-//private variables
-//----------------STATE VARS-----------------//
-STATE curState = IDLE;
-
-//----------------SNOOZE VARS----------------//
-SnoozeTimer sleepTimer;
-SnoozeUSBSerial sleepUSB;
-
-SnoozeBlock config(sleepTimer, sleepUSB);
-
-//----------------TIMER VARS-----------------//
-volatile int isrCount = 0;
-
-IntervalTimer timer; // Create an IntervalTimer object
-
-const int period = 250; //period in microseconds
-
-//---------------BUFFER VARS----------------//
-String dataString = "";
-const int writeBufSize = 10;
-int writeBuf[writeBufSize];
-
-//---------------TIME VARS------------------//
-
-volatile int prevIsrCount = -1;
-
-unsigned long time = 0;
-
-//---------------FILE VARS------------------//
 File dataFile;
-char fName[10];
 
-//---------------COUNT VARS-----------------//
-volatile int numWrite = 0;
-volatile int numConversions = 0;
+int numWrites = 0;
 
-//---------------LED VARS--------------------//
-int ledstate = 0;
+unsigned int time = 0;
 
 void setup()
 {
-	pinMode(LED_BUILTIN, OUTPUT);
+	//UNCOMMENT THESE TWO LINES FOR TEENSY AUDIO BOARD:
+	//SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
+	//SPI.setSCK(14);  // Audio shield has SCK on pin 14
+
 	// Open serial communications and wait for port to open:
 	Serial.begin(9600);
 	while (!Serial)
+	{
 		; // wait for serial port to connect.
+	}
 
 	Serial.print("Initializing SD card...");
 
 	// see if the card is present and can be initialized:
-	if (!SD.begin(BUILTIN_SDCARD))
+	if (!SD.begin(chipSelect))
 	{
 		Serial.println("Card failed, or not present");
 		// don't do anything more:
 		return;
 	}
+
 	Serial.println("card initialized.");
 
-	// sleepTimer.setTimer(period / 1000); //milliseconds
+	SD.remove("datalog.txt"); //remove previous versions of file
+
+	dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+	time = millis();
 }
 
 void loop()
 {
-	switch (curState)
+	// make a string for assembling the data to log:
+	String dataString = "test";
+	// String dataString = "";
+
+	// read three sensors and append to the string:
+	for (int analogPin = 0; analogPin < numChannels; analogPin++)
 	{
-	case IDLE:
-	{
-		// Serial.println("Entering IDLE...");
-		// Snooze.deepSleep(config);
-		digitalWrite(LED_BUILTIN, ledstate);
-		ledstate = !ledstate;
-		delay(500);
-		asm volatile("wfi");
-		break;
-	}
-	case CREATE_FILE:
-	{
-		Serial.println("Creating File...");
-		int fNum = -1;
-		do
+		int sensor = analogRead(analogPin);
+		dataString += String(sensor);
+		if (analogPin < numChannels - 1)
 		{
-			fNum++;
-			sprintf(fName, "F%d.txt", fNum);
-		} while (SD.exists(fName));
-
-		Serial.print("Filename Created: ");
-		Serial.println(fName);
-
-		curState = FILE_LOADED;
-		break;
-	}
-	case FILE_LOADED:
-	{
-		asm volatile("wfi");
-		break;
-	}
-	case PREPARE:
-	{
-		Serial.println("Preparing File for Run...");
-		dataFile = SD.open(fName, FILE_WRITE); //create file
-
-		if (!dataFile)
-		{
-			Serial.println("error opening file");
-			curState = IDLE;
-			break;
-		}
-
-		// timer.begin(timerISR, period); //start data collection timer
-
-		Serial.println("Timer Started...");
-		time = millis();
-		curState = AWAIT;
-		break;
-	}
-	case AWAIT:
-	{
-		curState = WRITE;
-		break;
-	}
-	case WRITE:
-	{
-		dataString = "";
-		// read three sensors and append to the string:
-		for (int analogPin = 0; analogPin < 10; analogPin++)
-		{
-			int sensor = analogRead(analogPin);
-			// dataFile.print(sensor);
-			// writeBuf[analogPin] = sensor;
-			dataString += String(sensor);
-
 			dataString += ",";
 		}
-		// curState = WRITE;
-		// numConversions++;
-
-		// dataFile.println(dataString);
-		// dataFile.print(writeBuf, 10);
-		numWrite++;
-
-		break;
 	}
-	case CLOSE:
+
+	// if the file is available, write to it:
+	if (dataFile)
 	{
-		Serial.println("Closing File...");
-		// timer.end(); //stop data collection timer
-		dataFile.close();
+		dataFile.println(dataString);
 
-		time = millis() - time;
-		Serial.print("Write Time: ");
-		Serial.println(time);
-
-		Serial.println("File Closed:");
-		Serial.print("numWrite: ");
-		Serial.println(numWrite);
-		Serial.print("numConversions: ");
-		Serial.println(numConversions);
-		Serial.print("Write Freq: ");
-		Serial.println(numWrite * 1000 / time);
-		Serial.print("Conversion Freq: ");
-		Serial.println(numConversions * 10 * 1000 / time);
-		curState = IDLE;
-		break;
+		numWrites++;
+		// print to the serial port too:
+		// Serial.println(dataString);
 	}
+	// if the file isn't open, pop up an error:
+	else
+	{
+		Serial.println("error opening datalog.txt");
 	}
 }
 
-// void timerISR()
-// {
-
-// }
-
 void serialEvent()
 {
-	char rx = 0;
-	while (Serial.available()) //get most recent byte sent
-	{
-		rx = (char)Serial.read();
-	}
-
-	Serial.println(rx);
-
-	switch (rx)
-	{
-	case CREATE_FILE_CMD:
-		if (curState == IDLE)
-		{
-			curState = CREATE_FILE;
-		}
-		break;
-	case START_CMD:
-		if (curState == FILE_LOADED)
-		{
-			curState = PREPARE;
-		}
-		break;
-	case HALT_CMD:
-		if (curState == AWAIT || curState == WRITE)
-		{
-			curState = CLOSE;
-		}
-		break;
-	}
+	time = millis() - time;
+	Serial.println("Halted Data Collection");
+	dataFile.close();
+	Serial.print("Number of writes: ");
+	Serial.println(numWrites);
+	Serial.print("time: ");
+	Serial.println(time);
+	Serial.print("Write Freq: ");
+	Serial.println(numWrites * 1000 / time);
+	Serial.println("Endless Loop");
+	while (true)
+		;
 }
