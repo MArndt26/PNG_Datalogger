@@ -41,9 +41,20 @@ File dataFile;
 
 int numWrites = 0;
 
-unsigned int time = 0;
+elapsedMillis time;
 
-uint16_t datastore[60];
+uint16_t datastore[ADC_CHAN * MUXED_CHAN];
+
+enum LOGGER_STATE
+{
+	IDLE,
+	CREATE_FILE,
+	FILE_LOADED,
+	WRITE,
+	CLOSE
+};
+
+LOGGER_STATE logger_state = WRITE;
 
 void setup()
 {
@@ -91,43 +102,57 @@ void setup()
 
 	dataFile = SD.open("datalog.txt", FILE_WRITE);
 
-	time = millis();
+	time = 0;
 }
 
 int value = 0;
 int pin = 0;
 void loop()
 {
-	digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-	for (int j = 0; j < MUXED_CHAN; j++)
+	switch (logger_state)
 	{
-		for (int i = 0; i < ADC_CHAN; i++)
+	case IDLE:
+		break;
+	case CREATE_FILE:
+		break;
+	case FILE_LOADED:
+		break;
+	case WRITE:
+		digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
+		for (int j = 0; j < MUXED_CHAN; j++)
 		{
-			datastore[i] = adc->analogRead(adc_pins[i]);
+			for (int i = 0; i < ADC_CHAN; i++)
+			{
+				datastore[i] = adc->analogRead(adc_pins[i]);
+			}
 		}
-	}
 
-	dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
-	numWrites++;
+		dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
+		numWrites++;
+		break;
+	case CLOSE:
+		time = millis() - time;
+		Serial.println("Halted Data Collection");
+		dataFile.close();
+		Serial.print("Number of writes: ");
+		Serial.println(numWrites);
+		Serial.print("time: ");
+		Serial.println(time);
+		Serial.print("Write Freq: ");
+		Serial.println(numWrites * 1000 / time);
+		Serial.println("Endless Loop");
+		while (true)
+		{
+			digitalWriteFast(LED_BUILTIN, HIGH);
+			delay(1000);
+			digitalWriteFast(LED_BUILTIN, LOW);
+			delay(1000);
+		}
+		break;
+	}
 }
 
 void serialEvent()
 {
-	time = millis() - time;
-	Serial.println("Halted Data Collection");
-	dataFile.close();
-	Serial.print("Number of writes: ");
-	Serial.println(numWrites);
-	Serial.print("time: ");
-	Serial.println(time);
-	Serial.print("Write Freq: ");
-	Serial.println(numWrites * 1000 / time);
-	Serial.println("Endless Loop");
-	while (true)
-	{
-		digitalWriteFast(LED_BUILTIN, HIGH);
-		delay(1000);
-		digitalWriteFast(LED_BUILTIN, LOW);
-		delay(1000);
-	}
+	logger_state = CLOSE;
 }
