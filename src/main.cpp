@@ -27,7 +27,9 @@
 
 ADC *adc = new ADC();
 
-#define PINS 10
+const int ADC_CHAN = 10;
+
+const int MUXED_CHAN = 6;
 
 uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
 
@@ -41,13 +43,13 @@ int numWrites = 0;
 
 unsigned int time = 0;
 
-uint16_t datastore[10];
+uint16_t datastore[60];
 
 void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
 
-	for (int i = 0; i < PINS; i++)
+	for (int i = 0; i < ADC_CHAN; i++)
 	{
 		pinMode(adc_pins[i], INPUT);
 	}
@@ -96,10 +98,15 @@ int value = 0;
 int pin = 0;
 void loop()
 {
-	for (int i = 0; i < PINS; i++)
+	digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
+	for (int j = 0; j < MUXED_CHAN; j++)
 	{
-		datastore[i] = adc->analogRead(adc_pins[i]);
+		for (int i = 0; i < ADC_CHAN; i++)
+		{
+			datastore[i] = adc->analogRead(adc_pins[i]);
+		}
 	}
+
 	dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
 	numWrites++;
 }
