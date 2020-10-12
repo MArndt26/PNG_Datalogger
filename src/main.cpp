@@ -1,9 +1,9 @@
 /*
   SD card datalogger
- 
- This example shows how to log data from three analog sensors 
+
+ This example shows how to log data from three analog sensors
  to an SD card using the SD library.
- 	
+
  The circuit:
  * analog sensors on analog ins 0, 1, and 2
  * SD card attached to SPI bus as follows:
@@ -11,32 +11,29 @@
  ** MISO - pin 12
  ** CLK - pin 13, pin 14 on Teensy with audio board
  ** CS - pin 4,  pin 10 on Teensy with audio board
- 
+
  created  24 Nov 2010
  modified 9 Apr 2012
  by Tom Igoe
- 
+
  This example code is in the public domain.
- 	 
+
  */
 
 #include <SD.h>
 #include <SPI.h>
+#include <ADC.h>
+#include <ADC_util.h>
 
-// On the Ethernet Shield, CS is pin 4. Note that even if it's not
-// used as the CS pin, the hardware CS pin (10 on most Arduino boards,
-// 53 on the Mega) must be left as an output or the SD library
-// functions will not work.
+ADC *adc = new ADC();
 
-// change this to match your SD shield or module;
-// Arduino Ethernet shield: pin 4
-// Adafruit SD shields and modules: pin 10
-// Sparkfun SD shield: pin 8
-// Teensy audio board: pin 10
-// Teensy 3.5 & 3.6 & 4.1 on-board: BUILTIN_SDCARD
-// Wiz820+SD board: pin 4
-// Teensy 2.0: pin 0
-// Teensy++ 2.0: pin 20
+#define PINS 18
+#define DIG_PINS 10
+#define PINS_DIFF 0
+uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17};
+uint8_t adc_pins_dig[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
+uint8_t adc_pins_diff[] = {};
+
 const int chipSelect = BUILTIN_SDCARD;
 
 const int numChannels = 10;
@@ -49,9 +46,26 @@ unsigned int time = 0;
 
 void setup()
 {
-	//UNCOMMENT THESE TWO LINES FOR TEENSY AUDIO BOARD:
-	//SPI.setMOSI(7);  // Audio shield has MOSI on pin 7
-	//SPI.setSCK(14);  // Audio shield has SCK on pin 14
+	pinMode(LED_BUILTIN, OUTPUT);
+
+	for (int i = 0; i < PINS; i++)
+	{
+		pinMode(adc_pins[i], INPUT);
+	}
+
+	///// ADC0 ////
+	adc->adc0->setAveraging(16);									// set number of averages
+	adc->adc0->setResolution(12);									// set bits of resolution
+	adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED); // change the conversion speed
+	adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);		// change the sampling speed
+
+////// ADC1 /////
+#ifdef ADC_DUAL_ADCS
+	adc->adc1->setAveraging(16);									// set number of averages
+	adc->adc1->setResolution(12);									// set bits of resolution
+	adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED); // change the conversion speed
+	adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);		// change the sampling speed
+#endif
 
 	// Open serial communications and wait for port to open:
 	Serial.begin(9600);
@@ -79,37 +93,22 @@ void setup()
 	time = millis();
 }
 
+int value = 0;
+int pin = 0;
 void loop()
 {
 	// make a string for assembling the data to log:
 	String dataString = "test";
 	// String dataString = "";
 
-	// read three sensors and append to the string:
-	for (int analogPin = 0; analogPin < numChannels; analogPin++)
+	for (int i = 0; i < PINS; i++)
 	{
-		int sensor = analogRead(analogPin);
-		dataString += String(sensor);
-		if (analogPin < numChannels - 1)
-		{
-			dataString += ",";
-		}
+		value = adc->analogRead(adc_pins[i]);
+		dataFile.print(value);
+		dataFile.print(',');
 	}
-
-	// if the file is available, write to it:
-	if (dataFile)
-	{
-		dataFile.println(dataString);
-
-		numWrites++;
-		// print to the serial port too:
-		// Serial.println(dataString);
-	}
-	// if the file isn't open, pop up an error:
-	else
-	{
-		Serial.println("error opening datalog.txt");
-	}
+	dataFile.println();
+	numWrites++;
 }
 
 void serialEvent()
