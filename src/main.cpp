@@ -124,5 +124,10 @@ void serialEvent()
 	Serial.println(numWrites * 1000 / time);
 	Serial.println("Endless Loop");
 	while (true)
-		;
+	{
+		digitalWriteFast(LED_BUILTIN, HIGH);
+		delay(1000);
+		digitalWriteFast(LED_BUILTIN, LOW);
+		delay(1000);
+	}
 }
