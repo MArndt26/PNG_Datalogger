@@ -25,6 +25,8 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
+void blink(int times, int d);
+
 ADC *adc = new ADC();
 
 const int ADC_CHAN = 10;
@@ -38,6 +40,7 @@ const int chipSelect = BUILTIN_SDCARD;
 const int numChannels = 10;
 
 File dataFile;
+char fName[10];
 
 int numWrites = 0;
 
@@ -54,7 +57,7 @@ enum LOGGER_STATE
 	CLOSE
 };
 
-LOGGER_STATE logger_state = WRITE;
+LOGGER_STATE logger_state = IDLE;
 
 void setup()
 {
@@ -97,12 +100,6 @@ void setup()
 	}
 
 	Serial.println("card initialized.");
-
-	SD.remove("datalog.txt"); //remove previous versions of file
-
-	dataFile = SD.open("datalog.txt", FILE_WRITE);
-
-	time = 0;
 }
 
 int value = 0;
@@ -112,12 +109,53 @@ void loop()
 	switch (logger_state)
 	{
 	case IDLE:
+	{
+		blink(1, 100);
 		break;
+	}
+
 	case CREATE_FILE:
+	{
+		Serial.println("Creating File...");
+		int fNum = -1;
+		do
+		{
+			fNum++;
+			sprintf(fName, "F%d.bin", fNum);
+		} while (SD.exists(fName));
+
+		Serial.print("Filename Created: ");
+		Serial.println(fName);
+
+		dataFile = SD.open(fName, FILE_WRITE);
+
+		if (dataFile)
+		{
+			Serial.print("File Loaded: ");
+			Serial.println(fName);
+			logger_state = FILE_LOADED;
+		}
+		else
+		{
+			Serial.println("Error with Datafile: Endless loop");
+			while (true)
+			{
+				blink(1, 1000);
+			}
+		}
+
+		numWrites = 0;
+
 		break;
+	}
 	case FILE_LOADED:
+	{
+		blink(1, 500);
+		time = 0; //clear timestamp
 		break;
+	}
 	case WRITE:
+	{
 		digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 		for (int j = 0; j < MUXED_CHAN; j++)
 		{
@@ -130,29 +168,62 @@ void loop()
 		dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
 		numWrites++;
 		break;
+	}
 	case CLOSE:
-		time = millis() - time;
+	{
+		int tmpTime = time;
 		Serial.println("Halted Data Collection");
 		dataFile.close();
 		Serial.print("Number of writes: ");
 		Serial.println(numWrites);
 		Serial.print("time: ");
-		Serial.println(time);
+		Serial.println(tmpTime);
 		Serial.print("Write Freq: ");
 		Serial.println(numWrites * 1000 / time);
-		Serial.println("Endless Loop");
-		while (true)
-		{
-			digitalWriteFast(LED_BUILTIN, HIGH);
-			delay(1000);
-			digitalWriteFast(LED_BUILTIN, LOW);
-			delay(1000);
-		}
+
+		logger_state = IDLE;
+
 		break;
+	}
 	}
 }
 
 void serialEvent()
 {
-	logger_state = CLOSE;
+	char c = Serial.read();
+
+	Serial.println(c);
+
+	switch (c)
+	{
+	case 'c':
+		if (logger_state == IDLE)
+		{
+			logger_state = CREATE_FILE;
+		}
+		break;
+	case 's':
+		if (logger_state == FILE_LOADED)
+		{
+			logger_state = WRITE;
+		}
+		break;
+	case 'h':
+		if (logger_state == WRITE)
+		{
+			logger_state = CLOSE;
+		}
+		break;
+	}
+}
+
+void blink(int times, int d)
+{
+	for (int i = 0; i < times; i++)
+	{
+		digitalWriteFast(LED_BUILTIN, HIGH);
+		delay(d);
+		digitalWriteFast(LED_BUILTIN, LOW);
+		delay(d);
+	}
 }
