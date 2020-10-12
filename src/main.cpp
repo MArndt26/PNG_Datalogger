@@ -41,6 +41,8 @@ int numWrites = 0;
 
 unsigned int time = 0;
 
+uint16_t datastore[10];
+
 void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
@@ -51,17 +53,17 @@ void setup()
 	}
 
 	///// ADC0 ////
-	adc->adc0->setAveraging(16);									// set number of averages
-	adc->adc0->setResolution(12);									// set bits of resolution
-	adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED); // change the conversion speed
-	adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);		// change the sampling speed
+	adc->adc0->setAveraging(1);											  // set number of averages
+	adc->adc0->setResolution(12);										  // set bits of resolution
+	adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
+	adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);	  // change the sampling speed
 
 ////// ADC1 /////
 #ifdef ADC_DUAL_ADCS
-	adc->adc1->setAveraging(16);									// set number of averages
-	adc->adc1->setResolution(12);									// set bits of resolution
-	adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED); // change the conversion speed
-	adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED);		// change the sampling speed
+	adc->adc1->setAveraging(1);											  // set number of averages
+	adc->adc1->setResolution(12);										  // set bits of resolution
+	adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
+	adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);	  // change the sampling speed
 #endif
 
 	// Open serial communications and wait for port to open:
@@ -94,17 +96,11 @@ int value = 0;
 int pin = 0;
 void loop()
 {
-	// make a string for assembling the data to log:
-	String dataString = "test";
-	// String dataString = "";
-
 	for (int i = 0; i < PINS; i++)
 	{
-		value = adc->analogRead(adc_pins[i]);
-		dataFile.print(value);
-		dataFile.print(',');
+		datastore[i] = adc->analogRead(adc_pins[i]);
 	}
-	dataFile.println();
+	dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
 	numWrites++;
 }
 
