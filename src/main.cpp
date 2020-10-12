@@ -44,7 +44,7 @@ char fName[10];
 
 int numWrites = 0;
 
-elapsedMillis time;
+elapsedMicros time;
 
 uint16_t datastore[ADC_CHAN * MUXED_CHAN];
 
@@ -157,11 +157,16 @@ void loop()
 	case WRITE:
 	{
 		digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
+
+		unsigned int tempTime = time;
+
+		dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
+
 		for (int j = 0; j < MUXED_CHAN; j++)
 		{
 			for (int i = 0; i < ADC_CHAN; i++)
 			{
-				datastore[i] = adc->analogRead(adc_pins[i]);
+				datastore[ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 			}
 		}
 
@@ -179,7 +184,7 @@ void loop()
 		Serial.print("time: ");
 		Serial.println(tmpTime);
 		Serial.print("Write Freq: ");
-		Serial.println(numWrites * 1000 / time);
+		Serial.println(numWrites / (time / 1000000.0));
 
 		logger_state = IDLE;
 
