@@ -16,7 +16,8 @@
  *      - Example: filename => F0.BIN
  *          ./a.out F0
  * 
- *  UPDATE: see makefile for running tests
+ *  UPDATE: use makefile for running tests
+ *      Example Execution: make test args=F0
  * 
  */
 
