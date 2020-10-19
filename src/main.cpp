@@ -37,7 +37,10 @@ const int MUXED_CHAN = 6;
 
 const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
 
-const uint8_t mux_pins[] = {30, 31};
+const uint8_t mux_pins[] = {30, 31}; //A B
+
+const uint8_t SEL_A = 0;
+const uint8_t SEL_B = 1;
 
 int mux_state = 0;
 
@@ -184,6 +187,50 @@ void loop()
 
 		for (int j = 0; j < MUXED_CHAN; j++)
 		{
+			/**
+			 * MUX LOGIC (CD4052)
+			 * 	31	30     <----MCU output pins
+			 * 	B	A	OUT	
+			 * 	0	0	0
+			 * 	0	1	1
+			 * 	1	0	2
+			 * 	1	1	3
+			 */
+			switch (mux_state)
+			{
+			case 0:
+			{
+				digitalWriteFast(mux_pins[SEL_A], LOW);
+				digitalWriteFast(mux_pins[SEL_B], LOW);
+				break;
+			}
+			case 1:
+			{
+				digitalWriteFast(mux_pins[SEL_A], HIGH);
+				digitalWriteFast(mux_pins[SEL_B], LOW);
+				break;
+			}
+			case 2:
+			{
+				digitalWriteFast(mux_pins[SEL_A], LOW);
+				digitalWriteFast(mux_pins[SEL_B], HIGH);
+				break;
+			}
+				// case 3:
+				// {
+				// 	digitalWriteFast(mux_pins[SEL_A], HIGH);
+				// 	digitalWriteFast(mux_pins[SEL_B], HIGH);
+				// 	mux_state = 0; //wrap around
+				// 	break;
+				// }
+			}
+			mux_state++;
+			if (mux_state > 2)
+			{
+				mux_state = 0; //wrap around
+			}
+
+			//read in adc channels
 			for (int i = 0; i < ADC_CHAN; i++)
 			{
 				datastore[ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
@@ -200,51 +247,7 @@ void loop()
 			Serial.print(',');
 		}
 		Serial.println();
-
-		mux_state++;
-		if (mux_state > 2)
-		{
-			mux_state = 0; //wrap around
-		}
 #endif
-
-		/**
-		 * MUX LOGIC (CD4052)
-		 * 	32	31     <----MCU output pins
-		 * 	B	A	OUT	
-		 * 	0	0	0
-		 * 	0	1	1
-		 * 	1	0	2
-		 * 	1	1	3
-		 */
-		switch (mux_state)
-		{
-		case 0:
-		{
-			digitalWriteFast(mux_pins[0], LOW);
-			digitalWriteFast(mux_pins[1], LOW);
-			break;
-		}
-		case 1:
-		{
-			digitalWriteFast(mux_pins[0], HIGH);
-			digitalWriteFast(mux_pins[1], LOW);
-			break;
-		}
-		case 2:
-		{
-			digitalWriteFast(mux_pins[0], LOW);
-			digitalWriteFast(mux_pins[1], HIGH);
-			break;
-		}
-			// case 3:
-			// {
-			// 	digitalWriteFast(mux_pins[0], HIGH);
-			// 	digitalWriteFast(mux_pins[1], HIGH);
-			// 	mux_state = 0; //wrap around
-			// 	break;
-			// }
-		}
 
 		unsigned int tempTime = time;
 

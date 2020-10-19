@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#define CREATE_INT_FILE
+
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
  * HOW TO:
@@ -30,7 +32,11 @@ int main(int argc, char *argv[])
     FILE *inFilePtr;
     FILE *outFilePtr;
 
-    char *fileWithExtension = malloc(strlen(filename) + 4);
+#ifdef CREATE_INT_FILE
+    FILE *intOutFilePtr;
+#endif
+
+    char *fileWithExtension = malloc(strlen(filename) + 10);
 
     sprintf(fileWithExtension, "%s.bin", filename);
 
@@ -45,6 +51,11 @@ int main(int argc, char *argv[])
 
     outFilePtr = fopen(fileWithExtension, "w");
 
+#ifdef CREATE_INT_FILE
+    sprintf(fileWithExtension, "%s(int).csv", filename);
+    intOutFilePtr = fopen(fileWithExtension, "w");
+#endif
+
     uint16_t wBuff;
     uint32_t tBuff;
 
@@ -58,11 +69,20 @@ int main(int argc, char *argv[])
         if (i == 0)
         {
             fprintf(outFilePtr, "%10s, ", "time (us)");
+#ifdef CREATE_INT_FILE
+            fprintf(intOutFilePtr, "%10s, ", "time (us)");
+#endif
         }
         fprintf(outFilePtr, "%8d, ", i);
+#ifdef CREATE_INT_FILE
+        fprintf(intOutFilePtr, "%4d, ", i);
+#endif
     }
 
     fprintf(outFilePtr, "\n");
+#ifdef CREATE_INT_FILE
+    fprintf(intOutFilePtr, "\n"); //write integer
+#endif
 
     while (!feof(inFilePtr))
     {
@@ -70,20 +90,34 @@ int main(int argc, char *argv[])
         {
             fread(&tBuff, sizeof(uint32_t), 1, inFilePtr);
             fprintf(outFilePtr, "%10u, ", tBuff);
+#ifdef CREATE_INT_FILE
+            fprintf(intOutFilePtr, "%10u, ", tBuff); //write integer
+#endif
         }
         fread(&wBuff, sizeof(uint16_t), 1, inFilePtr);   //read in half word
         float voltage = wBuff / resolution * voltageRef; //calculate voltage
         fprintf(outFilePtr, "%4.6f, ", voltage);         //write out voltage
+
+#ifdef CREATE_INT_FILE
+        fprintf(intOutFilePtr, "%4d, ", wBuff); //write integer
+#endif
         cols++;
 
         if (cols == numCols)
         {
             fprintf(outFilePtr, "\n");
+#ifdef CREATE_INT_FILE
+            fprintf(intOutFilePtr, "\n"); //write integer
+#endif
             cols = 0;
         }
     }
     fclose(inFilePtr);
     fclose(outFilePtr);
+
+#ifdef CREATE_INT_FILE
+    fclose(intOutFilePtr);
+#endif
 
     free(fileWithExtension);
 
