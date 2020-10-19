@@ -27,6 +27,10 @@ int main(int argc, char *argv[])
         printf("Incorrect number of arguments!\n");
         exit(1);
     }
+    else
+    {
+        printf("Starting Data Conversion...\n");
+    }
 
     char *filename = argv[1];
     FILE *inFilePtr;
@@ -47,13 +51,15 @@ int main(int argc, char *argv[])
         // Program exits if the file pointer returns NULL.
         exit(1);
     }
-    sprintf(fileWithExtension, "%s.csv", filename);
 
+    sprintf(fileWithExtension, "%s.csv", filename);
     outFilePtr = fopen(fileWithExtension, "w");
+    printf("...Created %s\n", fileWithExtension);
 
 #ifdef CREATE_INT_FILE
     sprintf(fileWithExtension, "%s(int).csv", filename);
     intOutFilePtr = fopen(fileWithExtension, "w");
+    printf("...Created %s\n", fileWithExtension);
 #endif
 
     uint16_t wBuff;
@@ -120,6 +126,8 @@ int main(int argc, char *argv[])
 #endif
 
     free(fileWithExtension);
+
+    printf("Finished writing files\n");
 
     return 0;
 }

@@ -25,7 +25,7 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 
 void blink(int times, int d);
 
@@ -272,6 +272,14 @@ void loop()
 		Serial.println(tmpTime);
 		Serial.print("Write Freq: ");
 		Serial.println(numWrites / (time / 1000000.0));
+
+		Serial.print("last datastore: ");
+		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+		{
+			Serial.print(datastore[i]);
+			Serial.print(", ");
+		}
+		Serial.println();
 
 		logger_state = IDLE;
 
