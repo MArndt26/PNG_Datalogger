@@ -14,6 +14,8 @@
  *      - Example: filename => F0.BIN
  *          ./a.out F0
  * 
+ *  UPDATE: see makefile for running tests
+ * 
  */
 
 int main(int argc, char *argv[])
@@ -25,7 +27,6 @@ int main(int argc, char *argv[])
     }
 
     char *filename = argv[1];
-    int n;
     FILE *inFilePtr;
     FILE *outFilePtr;
 
@@ -49,6 +50,8 @@ int main(int argc, char *argv[])
 
     int cols = 0;
     int numCols = 60;
+    float resolution = 4096.0;
+    float voltageRef = 3.3;
 
     for (int i = 0; i < numCols; i++)
     {
@@ -56,7 +59,7 @@ int main(int argc, char *argv[])
         {
             fprintf(outFilePtr, "%10s, ", "time (us)");
         }
-        fprintf(outFilePtr, "%4d, ", i);
+        fprintf(outFilePtr, "%8d, ", i);
     }
 
     fprintf(outFilePtr, "\n");
@@ -68,8 +71,9 @@ int main(int argc, char *argv[])
             fread(&tBuff, sizeof(uint32_t), 1, inFilePtr);
             fprintf(outFilePtr, "%10u, ", tBuff);
         }
-        fread(&wBuff, sizeof(uint16_t), 1, inFilePtr);
-        fprintf(outFilePtr, "%4d, ", wBuff);
+        fread(&wBuff, sizeof(uint16_t), 1, inFilePtr);   //read in half word
+        float voltage = wBuff / resolution * voltageRef; //calculate voltage
+        fprintf(outFilePtr, "%4.6f, ", voltage);         //write out voltage
         cols++;
 
         if (cols == numCols)

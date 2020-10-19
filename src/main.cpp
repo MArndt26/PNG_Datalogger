@@ -25,6 +25,8 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
+#define SERIAL_DEBUG
+
 void blink(int times, int d);
 
 ADC *adc = new ADC();
@@ -33,7 +35,11 @@ const int ADC_CHAN = 10;
 
 const int MUXED_CHAN = 6;
 
-uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
+const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
+
+const uint8_t mux_pins[] = {30, 31};
+
+int mux_state = 0;
 
 const int chipSelect = BUILTIN_SDCARD;
 
@@ -66,6 +72,12 @@ void setup()
 	for (int i = 0; i < ADC_CHAN; i++)
 	{
 		pinMode(adc_pins[i], INPUT);
+	}
+
+	for (unsigned int i = 0; i < sizeof(mux_pins) / sizeof(mux_pins[0]); i++)
+	{
+		pinMode(mux_pins[i], OUTPUT);
+		digitalWriteFast(mux_pins[i], LOW); //initialize to low
 	}
 
 	///// ADC0 ////
@@ -143,6 +155,18 @@ void loop()
 				blink(1, 1000);
 			}
 		}
+#ifdef SERIAL_DEBUG
+		for (int i = 0; i < 9; i++)
+		{
+			Serial.print(' ');
+		}
+		for (int i = 0; i < 60; i++)
+		{
+			Serial.print(i);
+			Serial.print(',');
+		}
+		Serial.println();
+#endif
 
 		numWrites = 0;
 
@@ -158,10 +182,6 @@ void loop()
 	{
 		digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
-		unsigned int tempTime = time;
-
-		dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
-
 		for (int j = 0; j < MUXED_CHAN; j++)
 		{
 			for (int i = 0; i < ADC_CHAN; i++)
@@ -170,8 +190,72 @@ void loop()
 			}
 		}
 
+#ifdef SERIAL_DEBUG
+		Serial.print("mux (");
+		Serial.print(mux_state);
+		Serial.print("): ");
+		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+		{
+			Serial.print(datastore[i]);
+			Serial.print(',');
+		}
+		Serial.println();
+
+		mux_state++;
+		if (mux_state > 2)
+		{
+			mux_state = 0; //wrap around
+		}
+#endif
+
+		/**
+		 * MUX LOGIC (CD4052)
+		 * 	32	31     <----MCU output pins
+		 * 	B	A	OUT	
+		 * 	0	0	0
+		 * 	0	1	1
+		 * 	1	0	2
+		 * 	1	1	3
+		 */
+		switch (mux_state)
+		{
+		case 0:
+		{
+			digitalWriteFast(mux_pins[0], LOW);
+			digitalWriteFast(mux_pins[1], LOW);
+			break;
+		}
+		case 1:
+		{
+			digitalWriteFast(mux_pins[0], HIGH);
+			digitalWriteFast(mux_pins[1], LOW);
+			break;
+		}
+		case 2:
+		{
+			digitalWriteFast(mux_pins[0], LOW);
+			digitalWriteFast(mux_pins[1], HIGH);
+			break;
+		}
+			// case 3:
+			// {
+			// 	digitalWriteFast(mux_pins[0], HIGH);
+			// 	digitalWriteFast(mux_pins[1], HIGH);
+			// 	mux_state = 0; //wrap around
+			// 	break;
+			// }
+		}
+
+		unsigned int tempTime = time;
+
+		dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
+
 		dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
 		numWrites++;
+
+#ifdef SERIAL_DEBUG
+		delay(1000);
+#endif
 		break;
 	}
 	case CLOSE:
