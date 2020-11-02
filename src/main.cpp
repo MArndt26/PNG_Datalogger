@@ -25,9 +25,11 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
-// #define SERIAL_DEBUG
+#define SERIAL_DEBUG
 
 void blink(int times, int d);
+
+void debug(String msg, int val);
 
 ADC *adc = new ADC();
 
@@ -55,7 +57,12 @@ int numWrites = 0;
 
 elapsedMicros time;
 
-uint16_t datastore[ADC_CHAN * MUXED_CHAN];
+unsigned int adcTime;
+
+const int PRINT_BUF_MULT = 20;
+int offset = 0;
+
+uint16_t datastore[ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + PRINT_BUF_MULT];
 
 enum LOGGER_STATE
 {
@@ -179,15 +186,18 @@ void loop()
 	{
 		blink(1, 500);
 		time = 0; //clear timestamp
+		adcTime = 1000;
 		break;
 	}
 	case WRITE:
 	{
-		digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-
-		for (int j = 0; j < MUXED_CHAN; j++)
+		if (time - adcTime >= 500)
 		{
-			/**
+			digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
+
+			for (int j = 0; j < MUXED_CHAN; j++)
+			{
+				/**
 			 * MUX LOGIC (CD4052)
 			 * 	31	30     <----MCU output pins
 			 * 	B	A	OUT	
@@ -196,69 +206,91 @@ void loop()
 			 * 	1	0	2
 			 * 	1	1	3
 			 */
-			switch (mux_state)
-			{
-			case 0:
-			{
-				digitalWriteFast(mux_pins[SEL_A], LOW);
-				digitalWriteFast(mux_pins[SEL_B], LOW);
-				break;
-			}
-			case 1:
-			{
-				digitalWriteFast(mux_pins[SEL_A], HIGH);
-				digitalWriteFast(mux_pins[SEL_B], LOW);
-				break;
-			}
-			case 2:
-			{
-				digitalWriteFast(mux_pins[SEL_A], LOW);
-				digitalWriteFast(mux_pins[SEL_B], HIGH);
-				break;
-			}
-				// case 3:
-				// {
-				// 	digitalWriteFast(mux_pins[SEL_A], HIGH);
-				// 	digitalWriteFast(mux_pins[SEL_B], HIGH);
-				// 	mux_state = 0; //wrap around
-				// 	break;
-				// }
-			}
-			mux_state++;
-			if (mux_state > 2)
-			{
-				mux_state = 0; //wrap around
-			}
+				switch (mux_state)
+				{
+				case 0:
+				{
+					digitalWriteFast(mux_pins[SEL_A], LOW);
+					digitalWriteFast(mux_pins[SEL_B], LOW);
+					break;
+				}
+				case 1:
+				{
+					digitalWriteFast(mux_pins[SEL_A], HIGH);
+					digitalWriteFast(mux_pins[SEL_B], LOW);
+					break;
+				}
+				case 2:
+				{
+					digitalWriteFast(mux_pins[SEL_A], LOW);
+					digitalWriteFast(mux_pins[SEL_B], HIGH);
+					break;
+				}
+					// case 3:
+					// {
+					// 	digitalWriteFast(mux_pins[SEL_A], HIGH);
+					// 	digitalWriteFast(mux_pins[SEL_B], HIGH);
+					// 	mux_state = 0; //wrap around
+					// 	break;
+					// }
+				}
+				mux_state++;
+				if (mux_state > 2)
+				{
+					mux_state = 0; //wrap around
+				}
 
-			//read in adc channels
-			for (int i = 0; i < ADC_CHAN; i++)
-			{
-				datastore[ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
+				debug("offset: ", offset);
+
+				//read in adc channels
+				int i = 0;
+				for (i = 0; i < ADC_CHAN; i++)
+				{
+					datastore[ADC_CHAN * j + i + offset] = adc->analogRead(adc_pins[i]);
+				}
+
+				int idx = offset + ADC_CHAN * MUXED_CHAN;
+				datastore[idx] = time;
+
+				debug("idx: ", idx);
+				debug("time: ", time);
+
+				offset += i + 1;
+				int rst = ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT;
+				debug("rst: ", rst);
+				if (offset >= rst)
+				{
+					offset = 0; //rollover offset value
+
+					// dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
+
+					dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
+					numWrites++;
+				}
 			}
-		}
 
 #ifdef SERIAL_DEBUG
-		Serial.print("mux (");
-		Serial.print(mux_state);
-		Serial.print("): ");
-		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
-		{
-			Serial.print(datastore[i]);
-			Serial.print(',');
-		}
-		Serial.println();
+			Serial.print("mux (");
+			Serial.print(mux_state);
+			Serial.print("): ");
+			for (int i = 0; i < ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + 1; i++)
+			{
+				if (i % (ADC_CHAN * MUXED_CHAN) == 0)
+				{
+					Serial.println();
+				}
+				Serial.print(datastore[i]);
+
+				Serial.print(',');
+			}
+			Serial.println();
 #endif
-
-		unsigned int tempTime = time;
-
-		dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
-
-		dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
-		numWrites++;
 
 #ifdef SERIAL_DEBUG
-		delay(1000);
+			delay(1000);
 #endif
+			adcTime = time;
+		}
 		break;
 	}
 	case CLOSE:
@@ -326,4 +358,10 @@ void blink(int times, int d)
 		digitalWriteFast(LED_BUILTIN, LOW);
 		delay(d);
 	}
+}
+
+void debug(String msg, int val)
+{
+	Serial.print(msg);
+	Serial.println(val);
 }
