@@ -31,7 +31,7 @@ void blink(int times, int d);
 
 void debug(String msg, int val);
 
-void printPBuf();
+void printPBuf(int offset);
 
 int countDigits(int n);
 
@@ -63,7 +63,9 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 20;
+const int PRINT_BUF_MULT = 100;
+
+const int SERIAL_BUF_DISP = 20;
 
 // uint16_t datastore[ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + PRINT_BUF_MULT];
 
@@ -269,13 +271,11 @@ void loop()
 				}
 
 				//read in adc channels
-				int i = 0;
-				for (i = 0; i < ADC_CHAN; i++)
+				for (int i = 0; i < ADC_CHAN; i++)
 				{
 					pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 				}
 			}
-			debug("offset: ", offset);
 
 			pBuf.time[offset] = time;
 
@@ -288,7 +288,14 @@ void loop()
 			}
 
 #ifdef SERIAL_DEBUG
-			printPBuf();
+			debug("offset: ", offset);
+			int tempOffset = offset;
+			tempOffset -= SERIAL_BUF_DISP;
+			if (tempOffset < 0)
+			{
+				tempOffset = 0;
+			}
+			printPBuf(tempOffset);
 #endif
 
 #ifdef SERIAL_DEBUG
@@ -301,17 +308,70 @@ void loop()
 	case CLOSE:
 	{
 		int tmpTime = time;
+
 		Serial.println("Halted Data Collection");
+		Serial.println("wrapping up file...");
+
+		int finalOffset = offset;
+
+		debug("before: ", finalOffset);
+
+		finalOffset -= SERIAL_BUF_DISP;
+
+		if (finalOffset < 0)
+		{
+			finalOffset = 0;
+		}
+		debug("finalOffset: ", finalOffset);
+
+		// time = time - tmpTime;
+		while (1)
+		{
+			for (int j = 0; j < MUXED_CHAN; j++)
+			{
+				for (int i = 0; i < ADC_CHAN; i++)
+				{
+					pBuf.data[offset][ADC_CHAN * j + i] = 0;
+				}
+				pBuf.time[offset] = time;
+				offset++;
+				if (offset >= PRINT_BUF_MULT)
+				{
+					goto END_WHILE;
+				}
+			}
+		}
+
+	END_WHILE:
+
+		dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+		numWrites++;
+
 		dataFile.close();
 		Serial.print("Number of writes: ");
 		Serial.println(numWrites);
 		Serial.print("time: ");
 		Serial.println(tmpTime);
-		Serial.print("Write Freq: ");
+		Serial.print("Avg Write Freq: ");
 		Serial.println(numWrites * PRINT_BUF_MULT / (time / 1000000.0));
+		Serial.println("Time Deltas");
+		for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
+		{
+			int delta = pBuf.time[i] - pBuf.time[i - 1];
+			if (delta < 0 || delta == 0)
+			{
+				Serial.print("NA,");
+			}
+			else
+			{
+				Serial.print(delta);
+				Serial.print(",");
+			}
+		}
+		Serial.println();
 
-		Serial.print("last pBuf: ");
-		printPBuf();
+		Serial.println("last pBuf: ");
+		printPBuf(finalOffset);
 		logger_state = IDLE;
 
 		break;
@@ -365,9 +425,9 @@ void debug(String msg, int val)
 	Serial.println(val);
 }
 
-void printPBuf()
+void printPBuf(int offset)
 {
-	for (int j = 0; j < PRINT_BUF_MULT; j++)
+	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
 		Serial.print(pBuf.time[j]);
 
