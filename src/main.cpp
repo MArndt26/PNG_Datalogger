@@ -25,7 +25,7 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 
 void blink(int times, int d);
 
@@ -296,9 +296,7 @@ void loop()
 				tempOffset = 0;
 			}
 			printPBuf(tempOffset);
-#endif
 
-#ifdef SERIAL_DEBUG
 			delay(500);
 #endif
 			adcTime = time;
@@ -427,6 +425,7 @@ void debug(String msg, int val)
 
 void printPBuf(int offset)
 {
+	debug("offset: ", offset);
 	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
 		Serial.print(pBuf.time[j]);
