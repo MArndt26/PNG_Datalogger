@@ -31,6 +31,10 @@ void blink(int times, int d);
 
 void debug(String msg, int val);
 
+void printPBuf();
+
+int countDigits(int n);
+
 ADC *adc = new ADC();
 
 const int ADC_CHAN = 10;
@@ -60,9 +64,18 @@ elapsedMicros time;
 unsigned int adcTime;
 
 const int PRINT_BUF_MULT = 20;
-int offset = 0;
 
-uint16_t datastore[ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + PRINT_BUF_MULT];
+// uint16_t datastore[ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + PRINT_BUF_MULT];
+
+struct printBuf
+{
+	unsigned int time[PRINT_BUF_MULT];
+	uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
+} printBuf;
+
+int offset;
+
+struct printBuf pBuf;
 
 enum LOGGER_STATE
 {
@@ -138,6 +151,21 @@ void loop()
 
 	case CREATE_FILE:
 	{
+		Serial.println("Initializing Buffer...");
+		for (int i = 0; i < sizeof(pBuf.time) / sizeof(pBuf.time[0]); i++)
+		{
+			pBuf.time[i] = 0;
+		}
+
+		for (int j = 0; j < PRINT_BUF_MULT; j++)
+		{
+			for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+			{
+				pBuf.data[j][i] = 0;
+			}
+		}
+
+		offset = 0;
 		Serial.println("Creating File...");
 		int fNum = -1;
 		do
@@ -246,44 +274,22 @@ void loop()
 				int i = 0;
 				for (i = 0; i < ADC_CHAN; i++)
 				{
-					datastore[ADC_CHAN * j + i + offset] = adc->analogRead(adc_pins[i]);
+					pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 				}
+			}
 
-				int idx = offset + ADC_CHAN * MUXED_CHAN;
-				datastore[idx] = time;
+			pBuf.time[offset] = time;
 
-				debug("idx: ", idx);
-				debug("time: ", time);
-
-				offset += i + 1;
-				int rst = ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT;
-				debug("rst: ", rst);
-				if (offset >= rst)
-				{
-					offset = 0; //rollover offset value
-
-					// dataFile.write((const uint8_t *)&tempTime, sizeof(tempTime));
-
-					dataFile.write((const uint8_t *)&datastore, sizeof(datastore));
-					numWrites++;
-				}
+			offset++;
+			if (offset >= PRINT_BUF_MULT)
+			{
+				offset = 0; //wrap around buffer;
+				dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+				numWrites++;
 			}
 
 #ifdef SERIAL_DEBUG
-			Serial.print("mux (");
-			Serial.print(mux_state);
-			Serial.print("): ");
-			for (int i = 0; i < ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + 1; i++)
-			{
-				if (i % (ADC_CHAN * MUXED_CHAN) == 0)
-				{
-					Serial.println();
-				}
-				Serial.print(datastore[i]);
-
-				Serial.print(',');
-			}
-			Serial.println();
+			printPBuf();
 #endif
 
 #ifdef SERIAL_DEBUG
@@ -303,16 +309,10 @@ void loop()
 		Serial.print("time: ");
 		Serial.println(tmpTime);
 		Serial.print("Write Freq: ");
-		Serial.println(numWrites / (time / 1000000.0));
+		Serial.println(numWrites * PRINT_BUF_MULT / (time / 1000000.0));
 
-		Serial.print("last datastore: ");
-		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
-		{
-			Serial.print(datastore[i]);
-			Serial.print(", ");
-		}
-		Serial.println();
-
+		Serial.print("last pBuf: ");
+		printPBuf();
 		logger_state = IDLE;
 
 		break;
@@ -364,4 +364,38 @@ void debug(String msg, int val)
 {
 	Serial.print(msg);
 	Serial.println(val);
+}
+
+void printPBuf()
+{
+	for (int j = 0; j < PRINT_BUF_MULT; j++)
+	{
+		Serial.print(pBuf.time[j]);
+		Serial.print(',');
+		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+		{
+			int d = countDigits(pBuf.data[j][i]);
+
+			while (d < 4)
+			{
+				Serial.print(" ");
+				d++;
+			}
+
+			Serial.print(pBuf.data[j][i]);
+
+			Serial.print(',');
+		}
+		Serial.println();
+	}
+}
+
+int countDigits(int n)
+{
+	int count = 0;
+	while (n != 0)
+	{
+		n /= 10;
+		count++;
+	}
 }
