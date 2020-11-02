@@ -63,7 +63,7 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 100;
+const int PRINT_BUF_MULT = 3000;
 
 const int SERIAL_BUF_DISP = 20;
 

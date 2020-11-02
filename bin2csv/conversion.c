@@ -23,7 +23,7 @@
 
 #define ADC_CHAN 10
 #define MUXED_CHAN 6
-#define PRINT_BUF_MULT 100
+#define PRINT_BUF_MULT 3000
 #define SERIAL_BUF_DISP 20
 
 struct printBuf
