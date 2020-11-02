@@ -221,7 +221,7 @@ void loop()
 	}
 	case WRITE:
 	{
-		if (time - adcTime >= 500)
+		if (time - adcTime >= 900)
 		{
 			digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
