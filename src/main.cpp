@@ -152,7 +152,7 @@ void loop()
 	case CREATE_FILE:
 	{
 		Serial.println("Initializing Buffer...");
-		for (int i = 0; i < sizeof(pBuf.time) / sizeof(pBuf.time[0]); i++)
+		for (unsigned int i = 0; i < sizeof(pBuf.time) / sizeof(pBuf.time[0]); i++)
 		{
 			pBuf.time[i] = 0;
 		}
@@ -268,8 +268,6 @@ void loop()
 					mux_state = 0; //wrap around
 				}
 
-				debug("offset: ", offset);
-
 				//read in adc channels
 				int i = 0;
 				for (i = 0; i < ADC_CHAN; i++)
@@ -277,6 +275,7 @@ void loop()
 					pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 				}
 			}
+			debug("offset: ", offset);
 
 			pBuf.time[offset] = time;
 
@@ -293,7 +292,7 @@ void loop()
 #endif
 
 #ifdef SERIAL_DEBUG
-			delay(1000);
+			delay(500);
 #endif
 			adcTime = time;
 		}
@@ -371,17 +370,18 @@ void printPBuf()
 	for (int j = 0; j < PRINT_BUF_MULT; j++)
 	{
 		Serial.print(pBuf.time[j]);
+
+		int d = countDigits(pBuf.time[j]);
+
+		while (d < 15)
+		{
+			Serial.print(" ");
+			d++;
+		}
+
 		Serial.print(',');
 		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
 		{
-			int d = countDigits(pBuf.data[j][i]);
-
-			while (d < 4)
-			{
-				Serial.print(" ");
-				d++;
-			}
-
 			Serial.print(pBuf.data[j][i]);
 
 			Serial.print(',');
@@ -392,10 +392,15 @@ void printPBuf()
 
 int countDigits(int n)
 {
+	if (n == 0)
+	{
+		return 1;
+	}
 	int count = 0;
 	while (n != 0)
 	{
 		n /= 10;
 		count++;
 	}
+	return count;
 }
