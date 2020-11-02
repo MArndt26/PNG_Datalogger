@@ -21,6 +21,17 @@
  * 
  */
 
+#define ADC_CHAN 10
+#define MUXED_CHAN 6
+#define PRINT_BUF_MULT 100
+#define SERIAL_BUF_DISP 20
+
+struct printBuf
+{
+    unsigned int time[PRINT_BUF_MULT];
+    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
+} printBuf;
+
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -63,12 +74,9 @@ int main(int argc, char *argv[])
     printf("...Created %s\n", fileWithExtension);
 #endif
 
-    uint16_t wBuff;
-    uint32_t tBuff;
-
     int cols = 0;
     int numCols = 60;
-    float resolution = 4096.0;
+    float max_val = 4096.0 - 1; //max value is max_val - 1
     float voltageRef = 3.3;
 
     for (int i = 0; i < numCols; i++)
@@ -91,34 +99,32 @@ int main(int argc, char *argv[])
     fprintf(intOutFilePtr, "\n"); //write integer
 #endif
 
-    while (!feof(inFilePtr))
+    struct printBuf pBuf;
+
+    while (fread(&pBuf, sizeof(struct printBuf), 1, inFilePtr))
     {
-        if (cols == 0)
+        for (int i = 0; i < PRINT_BUF_MULT; i++)
         {
-            fread(&tBuff, sizeof(uint32_t), 1, inFilePtr);
-            fprintf(outFilePtr, "%10u, ", tBuff);
 #ifdef CREATE_INT_FILE
-            fprintf(intOutFilePtr, "%10u, ", tBuff); //write integer
+            fprintf(intOutFilePtr, "%10u, ", pBuf.time[i]);
+            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            {
+                fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
+            }
+            fprintf(intOutFilePtr, "\n");
 #endif
-        }
-        fread(&wBuff, sizeof(uint16_t), 1, inFilePtr);   //read in half word
-        float voltage = wBuff / resolution * voltageRef; //calculate voltage
-        fprintf(outFilePtr, "%4.6f, ", voltage);         //write out voltage
-
-#ifdef CREATE_INT_FILE
-        fprintf(intOutFilePtr, "%4d, ", wBuff); //write integer
-#endif
-        cols++;
-
-        if (cols == numCols)
-        {
+            fprintf(outFilePtr, "%10u, ", pBuf.time[i]);
+            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            {
+                float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
+                fprintf(outFilePtr, "%4.6f, ", voltage);
+            }
             fprintf(outFilePtr, "\n");
-#ifdef CREATE_INT_FILE
-            fprintf(intOutFilePtr, "\n"); //write integer
-#endif
-            cols = 0;
+
+            cols++;
         }
     }
+
     fclose(inFilePtr);
     fclose(outFilePtr);
 
