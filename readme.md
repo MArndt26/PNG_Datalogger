@@ -44,6 +44,14 @@ In the Run state, the code executes reads from the ADC and writes to the SD card
 
   - https://github.com/arduino-libraries/SD/blob/master/examples/NonBlockingWrite/NonBlockingWrite.ino
 
+- TeensyThreads
+
+  - https://github.com/ftrias/TeensyThreads
+
+- FreeRTOS-Teensy
+
+  - https://github.com/tsandmann/freertos-teensy
+
 # Project History
 
 updated 10/18/2020
