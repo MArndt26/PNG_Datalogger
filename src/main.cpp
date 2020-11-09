@@ -25,15 +25,11 @@
 #include <ADC.h>
 #include <ADC_util.h>
 
+#include "helpers.h"
+
 // #define SERIAL_DEBUG
 
-void blink(int times, int d);
-
-void debug(String msg, int val);
-
 void printPBuf(int offset);
-
-int countDigits(int n);
 
 void adc_isr();
 
@@ -355,23 +351,6 @@ void adc_isr()
 	}
 }
 
-void blink(int times, int d)
-{
-	for (int i = 0; i < times; i++)
-	{
-		digitalWriteFast(LED_BUILTIN, HIGH);
-		delay(d);
-		digitalWriteFast(LED_BUILTIN, LOW);
-		delay(d);
-	}
-}
-
-void debug(String msg, int val)
-{
-	Serial.print(msg);
-	Serial.println(val);
-}
-
 void printPBuf(int offset)
 {
 	debug("offset: ", offset);
@@ -396,19 +375,4 @@ void printPBuf(int offset)
 		}
 		Serial.println();
 	}
-}
-
-int countDigits(int n)
-{
-	if (n == 0)
-	{
-		return 1;
-	}
-	int count = 0;
-	while (n != 0)
-	{
-		n /= 10;
-		count++;
-	}
-	return count;
 }
