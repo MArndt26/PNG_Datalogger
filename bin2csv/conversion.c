@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     printf("...Created %s\n", fileWithExtension);
 #endif
 
-    int numCols = ADC_CHAN;
+    int numCols = ADC_CHAN * MUXED_CHAN;
 #ifdef CREATE_VOLTAGE_FILE
     float max_val = 4096.0 - 1; //max value is max_val - 1
     float voltageRef = 3.3;
