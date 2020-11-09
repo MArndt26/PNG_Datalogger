@@ -21,15 +21,13 @@
  * 
  */
 
-#define ADC_CHAN 10
-#define MUXED_CHAN 6
-#define PRINT_BUF_MULT 3000
-#define SERIAL_BUF_DISP 20
+#define ADC_CHAN 15
+#define PRINT_BUF_MULT 10000
 
 struct printBuf
 {
     unsigned int time[PRINT_BUF_MULT];
-    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
+    uint16_t data[PRINT_BUF_MULT][ADC_CHAN];
 } printBuf;
 
 int main(int argc, char *argv[])
@@ -75,7 +73,7 @@ int main(int argc, char *argv[])
 #endif
 
     int cols = 0;
-    int numCols = 60;
+    int numCols = ADC_CHAN;
     float max_val = 4096.0 - 1; //max value is max_val - 1
     float voltageRef = 3.3;
 
@@ -107,14 +105,14 @@ int main(int argc, char *argv[])
         {
 #ifdef CREATE_INT_FILE
             fprintf(intOutFilePtr, "%10u, ", pBuf.time[i]);
-            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            for (int j = 0; j < ADC_CHAN; j++)
             {
                 fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
             }
             fprintf(intOutFilePtr, "\n");
 #endif
             fprintf(outFilePtr, "%10u, ", pBuf.time[i]);
-            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            for (int j = 0; j < ADC_CHAN; j++)
             {
                 float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
                 fprintf(outFilePtr, "%4.6f, ", voltage);

@@ -35,24 +35,19 @@ void printPBuf(int offset);
 
 int countDigits(int n);
 
+void adc_isr();
+
+IntervalTimer adcTimer;
+
 ADC *adc = new ADC();
 
-const int ADC_CHAN = 10;
+volatile int adc_ready_flag = 0;
 
-const int MUXED_CHAN = 6;
+const int ADC_CHAN = 15;
 
-const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9};
-
-const uint8_t mux_pins[] = {30, 31}; //A B
-
-const uint8_t SEL_A = 0;
-const uint8_t SEL_B = 1;
-
-int mux_state = 0;
+const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14};
 
 const int chipSelect = BUILTIN_SDCARD;
-
-const int numChannels = 10;
 
 File dataFile;
 char fName[10];
@@ -63,16 +58,14 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 3000;
+const int PRINT_BUF_MULT = 10000;
 
 const int SERIAL_BUF_DISP = 20;
-
-// uint16_t datastore[ADC_CHAN * MUXED_CHAN * PRINT_BUF_MULT + PRINT_BUF_MULT];
 
 struct printBuf
 {
 	unsigned int time[PRINT_BUF_MULT];
-	uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
+	uint16_t data[PRINT_BUF_MULT][ADC_CHAN];
 } printBuf;
 
 int offset;
@@ -84,6 +77,7 @@ enum LOGGER_STATE
 	IDLE,
 	CREATE_FILE,
 	FILE_LOADED,
+	START_COLLECTION,
 	WRITE,
 	CLOSE
 };
@@ -97,12 +91,6 @@ void setup()
 	for (int i = 0; i < ADC_CHAN; i++)
 	{
 		pinMode(adc_pins[i], INPUT);
-	}
-
-	for (unsigned int i = 0; i < sizeof(mux_pins) / sizeof(mux_pins[0]); i++)
-	{
-		pinMode(mux_pins[i], OUTPUT);
-		digitalWriteFast(mux_pins[i], LOW); //initialize to low
 	}
 
 	///// ADC0 ////
@@ -122,9 +110,7 @@ void setup()
 	// Open serial communications and wait for port to open:
 	Serial.begin(9600);
 	while (!Serial)
-	{
 		; // wait for serial port to connect.
-	}
 
 	Serial.print("Initializing SD card...");
 
@@ -161,7 +147,7 @@ void loop()
 
 		for (int j = 0; j < PRINT_BUF_MULT; j++)
 		{
-			for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+			for (int i = 0; i < ADC_CHAN; i++)
 			{
 				pBuf.data[j][i] = 0;
 			}
@@ -215,77 +201,24 @@ void loop()
 	case FILE_LOADED:
 	{
 		blink(1, 500);
-		time = 0; //clear timestamp
-		adcTime = 1000;
+		break;
+	}
+	case START_COLLECTION:
+	{
+		adcTimer.begin(adc_isr, 900);
+		logger_state = WRITE;
 		break;
 	}
 	case WRITE:
 	{
-		if (time - adcTime >= 900)
+		if (adc_ready_flag)
 		{
+			adc_ready_flag = 0;
+
 			digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
-			for (int j = 0; j < MUXED_CHAN; j++)
-			{
-				/**
-			 * MUX LOGIC (CD4052)
-			 * 	31	30     <----MCU output pins
-			 * 	B	A	OUT	
-			 * 	0	0	0
-			 * 	0	1	1
-			 * 	1	0	2
-			 * 	1	1	3
-			 */
-				switch (mux_state)
-				{
-				case 0:
-				{
-					digitalWriteFast(mux_pins[SEL_A], LOW);
-					digitalWriteFast(mux_pins[SEL_B], LOW);
-					break;
-				}
-				case 1:
-				{
-					digitalWriteFast(mux_pins[SEL_A], HIGH);
-					digitalWriteFast(mux_pins[SEL_B], LOW);
-					break;
-				}
-				case 2:
-				{
-					digitalWriteFast(mux_pins[SEL_A], LOW);
-					digitalWriteFast(mux_pins[SEL_B], HIGH);
-					break;
-				}
-					// case 3:
-					// {
-					// 	digitalWriteFast(mux_pins[SEL_A], HIGH);
-					// 	digitalWriteFast(mux_pins[SEL_B], HIGH);
-					// 	mux_state = 0; //wrap around
-					// 	break;
-					// }
-				}
-				mux_state++;
-				if (mux_state > 2)
-				{
-					mux_state = 0; //wrap around
-				}
-
-				//read in adc channels
-				for (int i = 0; i < ADC_CHAN; i++)
-				{
-					pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
-				}
-			}
-
-			pBuf.time[offset] = time;
-
-			offset++;
-			if (offset >= PRINT_BUF_MULT)
-			{
-				offset = 0; //wrap around buffer;
-				dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
-				numWrites++;
-			}
+			dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+			numWrites++;
 
 #ifdef SERIAL_DEBUG
 			debug("offset: ", offset);
@@ -299,13 +232,14 @@ void loop()
 
 			delay(500);
 #endif
-			adcTime = time;
 		}
 		break;
 	}
 	case CLOSE:
 	{
 		int tmpTime = time;
+
+		adcTimer.end();
 
 		Serial.println("Halted Data Collection");
 		Serial.println("wrapping up file...");
@@ -325,18 +259,15 @@ void loop()
 		// time = time - tmpTime;
 		while (1)
 		{
-			for (int j = 0; j < MUXED_CHAN; j++)
+			for (int i = 0; i < ADC_CHAN; i++)
 			{
-				for (int i = 0; i < ADC_CHAN; i++)
-				{
-					pBuf.data[offset][ADC_CHAN * j + i] = 0;
-				}
-				pBuf.time[offset] = time;
-				offset++;
-				if (offset >= PRINT_BUF_MULT)
-				{
-					goto END_WHILE;
-				}
+				pBuf.data[offset][i] = 0;
+			}
+			pBuf.time[offset] = time;
+			offset++;
+			if (offset >= PRINT_BUF_MULT)
+			{
+				goto END_WHILE;
 			}
 		}
 
@@ -394,7 +325,7 @@ void serialEvent()
 	case 's':
 		if (logger_state == FILE_LOADED)
 		{
-			logger_state = WRITE;
+			logger_state = START_COLLECTION;
 		}
 		break;
 	case 'h':
@@ -403,6 +334,24 @@ void serialEvent()
 			logger_state = CLOSE;
 		}
 		break;
+	}
+}
+
+void adc_isr()
+{
+	//read in adc channels
+	for (int i = 0; i < ADC_CHAN; i++)
+	{
+		pBuf.data[offset][i] = adc->analogRead(adc_pins[i]);
+	}
+
+	pBuf.time[offset] = time;
+
+	offset++;
+	if (offset >= PRINT_BUF_MULT)
+	{
+		offset = 0; //wrap around buffer;
+		adc_ready_flag = 1;
 	}
 }
 
@@ -439,7 +388,7 @@ void printPBuf(int offset)
 		}
 
 		Serial.print(',');
-		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
+		for (int i = 0; i < ADC_CHAN; i++)
 		{
 			Serial.print(pBuf.data[j][i]);
 
