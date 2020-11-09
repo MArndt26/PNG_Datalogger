@@ -40,9 +40,18 @@ ADC *adc = new ADC();
 volatile int adc_ready_flag = 0;
 volatile int sd_print_comp_flag = 1;
 
-const int ADC_CHAN = 15;
+const int ADC_CHAN = 10;
 
-const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14};
+const int MUXED_CHAN = 6;
+
+const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10};
+
+const uint8_t mux_pins[] = {30, 31}; //A B
+
+const uint8_t SEL_A = 0;
+const uint8_t SEL_B = 1;
+
+int mux_state = 0;
 
 const int chipSelect = BUILTIN_SDCARD;
 
@@ -55,14 +64,14 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 10000;
+const int PRINT_BUF_MULT = 3000;
 
 const int SERIAL_BUF_DISP = 20;
 
 struct printBuf
 {
 	unsigned int time[PRINT_BUF_MULT];
-	uint16_t data[PRINT_BUF_MULT][ADC_CHAN];
+	uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
 } printBuf;
 
 int offset;
@@ -88,6 +97,12 @@ void setup()
 	for (int i = 0; i < ADC_CHAN; i++)
 	{
 		pinMode(adc_pins[i], INPUT);
+	}
+
+	for (unsigned int i = 0; i < sizeof(mux_pins) / sizeof(mux_pins[0]); i++)
+	{
+		pinMode(mux_pins[i], OUTPUT);
+		digitalWriteFast(mux_pins[i], LOW); //initialize to low
 	}
 
 	///// ADC0 ////
@@ -257,15 +272,18 @@ void loop()
 		// time = time - tmpTime;
 		while (1)
 		{
-			for (int i = 0; i < ADC_CHAN; i++)
+			for (int j = 0; j < MUXED_CHAN; j++)
 			{
-				pBuf.data[offset][i] = 0;
-			}
-			pBuf.time[offset] = 0;
-			offset++;
-			if (offset >= PRINT_BUF_MULT)
-			{
-				goto END_WHILE;
+				for (int i = 0; i < ADC_CHAN; i++)
+				{
+					pBuf.data[offset][ADC_CHAN * j + i] = 0;
+				}
+				pBuf.time[offset] = time;
+				offset++;
+				if (offset >= PRINT_BUF_MULT)
+				{
+					goto END_WHILE;
+				}
 			}
 		}
 
@@ -338,10 +356,57 @@ void serialEvent()
 void adc_isr()
 {
 	digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-	//read in adc channels
-	for (int i = 0; i < ADC_CHAN; i++)
+
+	for (int j = 0; j < MUXED_CHAN; j++)
 	{
-		pBuf.data[offset][i] = adc->analogRead(adc_pins[i]);
+		/**
+			 * MUX LOGIC (CD4052)
+			 * 	31	30     <----MCU output pins
+			 * 	B	A	OUT	
+			 * 	0	0	0
+			 * 	0	1	1
+			 * 	1	0	2
+			 * 	1	1	3
+			 */
+		switch (mux_state)
+		{
+		case 0:
+		{
+			digitalWriteFast(mux_pins[SEL_A], LOW);
+			digitalWriteFast(mux_pins[SEL_B], LOW);
+			break;
+		}
+		case 1:
+		{
+			digitalWriteFast(mux_pins[SEL_A], HIGH);
+			digitalWriteFast(mux_pins[SEL_B], LOW);
+			break;
+		}
+		case 2:
+		{
+			digitalWriteFast(mux_pins[SEL_A], LOW);
+			digitalWriteFast(mux_pins[SEL_B], HIGH);
+			break;
+		}
+			// case 3:
+			// {
+			// 	digitalWriteFast(mux_pins[SEL_A], HIGH);
+			// 	digitalWriteFast(mux_pins[SEL_B], HIGH);
+			// 	mux_state = 0; //wrap around
+			// 	break;
+			// }
+		}
+		mux_state++;
+		if (mux_state > 2)
+		{
+			mux_state = 0; //wrap around
+		}
+
+		//read in adc channels
+		for (int i = 0; i < ADC_CHAN; i++)
+		{
+			pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
+		}
 	}
 
 	pBuf.time[offset] = time;
@@ -370,7 +435,7 @@ void printPBuf(int offset)
 		}
 
 		Serial.print(',');
-		for (int i = 0; i < ADC_CHAN; i++)
+		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
 		{
 			Serial.print(pBuf.data[j][i]);
 
