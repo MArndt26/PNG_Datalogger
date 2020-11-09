@@ -22,13 +22,14 @@
  * 
  */
 
-#define ADC_CHAN 15
-#define PRINT_BUF_MULT 10000
+#define ADC_CHAN 10
+#define MUXED_CHAN 6
+#define PRINT_BUF_MULT 3000
 
 struct printBuf
 {
     unsigned int time[PRINT_BUF_MULT];
-    uint16_t data[PRINT_BUF_MULT][ADC_CHAN];
+    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
 } printBuf;
 
 int main(int argc, char *argv[])
@@ -131,7 +132,7 @@ int main(int argc, char *argv[])
 #ifdef CREATE_INT_FILE
                 fprintf(intOutFilePtr, "%10u, ", curTime);
                 fprintf(intOutFilePtr, "%10d, ", curTime - prevTime);
-                for (int j = 0; j < ADC_CHAN; j++)
+                for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
                 }
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
 #ifdef CREATE_VOLTAGE_FILE
                 fprintf(outFilePtr, "%10u, ", curTime);
                 fprintf(outFilePtr, "%10d, ", curTime - prevTime);
-                for (int j = 0; j < ADC_CHAN; j++)
+                for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
                     fprintf(outFilePtr, "%4.6f, ", voltage);
