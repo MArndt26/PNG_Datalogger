@@ -38,6 +38,7 @@ IntervalTimer adcTimer;
 ADC *adc = new ADC();
 
 volatile int adc_ready_flag = 0;
+volatile int sd_print_comp_flag = 1;
 
 const int ADC_CHAN = 15;
 
@@ -108,17 +109,17 @@ void setup()
 	while (!Serial)
 		; // wait for serial port to connect.
 
-	Serial.print("Initializing SD card...");
+	Serial.print(PSTR("Initializing SD card..."));
 
 	// see if the card is present and can be initialized:
 	if (!SD.begin(chipSelect))
 	{
-		Serial.println("Card failed, or not present");
+		Serial.println(PSTR("Card failed, or not present"));
 		// don't do anything more:
 		return;
 	}
 
-	Serial.println("card initialized.");
+	Serial.println(PSTR("card initialized."));
 }
 
 int value = 0;
@@ -135,7 +136,7 @@ void loop()
 
 	case CREATE_FILE:
 	{
-		Serial.println("Initializing Buffer...");
+		Serial.println(PSTR("Initializing Buffer..."));
 		for (unsigned int i = 0; i < sizeof(pBuf.time) / sizeof(pBuf.time[0]); i++)
 		{
 			pBuf.time[i] = 0;
@@ -150,28 +151,28 @@ void loop()
 		}
 
 		offset = 0;
-		Serial.println("Creating File...");
+		Serial.println(PSTR("Creating File..."));
 		int fNum = -1;
 		do
 		{
 			fNum++;
-			sprintf(fName, "F%d.bin", fNum);
+			sprintf(fName, PSTR("F%d.bin"), fNum);
 		} while (SD.exists(fName));
 
-		Serial.print("Filename Created: ");
+		Serial.print(PSTR("Filename Created: "));
 		Serial.println(fName);
 
 		dataFile = SD.open(fName, FILE_WRITE);
 
 		if (dataFile)
 		{
-			Serial.print("File Loaded: ");
+			Serial.print(PSTR("File Loaded: "));
 			Serial.println(fName);
 			logger_state = FILE_LOADED;
 		}
 		else
 		{
-			Serial.println("Error with Datafile: Endless loop");
+			Serial.println(PSTR("Error with Datafile: Endless loop"));
 			while (true)
 			{
 				blink(1, 1000);
@@ -214,10 +215,11 @@ void loop()
 			digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
 			dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+
 			numWrites++;
 
 #ifdef SERIAL_DEBUG
-			debug("offset: ", offset);
+			debug(PSTR("offset: "), offset);
 			int tempOffset = offset;
 			tempOffset -= SERIAL_BUF_DISP;
 			if (tempOffset < 0)
@@ -237,12 +239,12 @@ void loop()
 
 		adcTimer.end();
 
-		Serial.println("Halted Data Collection");
-		Serial.println("wrapping up file...");
+		Serial.println(PSTR("Halted Data Collection"));
+		Serial.println(PSTR("wrapping up file..."));
 
 		int finalOffset = offset;
 
-		debug("before: ", finalOffset);
+		debug(PSTR("before: "), finalOffset);
 
 		finalOffset -= SERIAL_BUF_DISP;
 
@@ -250,7 +252,7 @@ void loop()
 		{
 			finalOffset = 0;
 		}
-		debug("finalOffset: ", finalOffset);
+		debug(PSTR("finalOffset: "), finalOffset);
 
 		// time = time - tmpTime;
 		while (1)
@@ -259,7 +261,7 @@ void loop()
 			{
 				pBuf.data[offset][i] = 0;
 			}
-			pBuf.time[offset] = time;
+			pBuf.time[offset] = 0;
 			offset++;
 			if (offset >= PRINT_BUF_MULT)
 			{
@@ -273,24 +275,24 @@ void loop()
 		numWrites++;
 
 		dataFile.close();
-		Serial.print("Number of writes: ");
+		Serial.print(PSTR("Number of writes: "));
 		Serial.println(numWrites);
-		Serial.print("time: ");
+		Serial.print(PSTR("time: "));
 		Serial.println(tmpTime);
-		Serial.print("Avg Write Freq: ");
-		Serial.println(numWrites * PRINT_BUF_MULT / (time / 1000000.0));
-		Serial.println("Time Deltas");
+		Serial.print(PSTR("Avg Write Freq: "));
+		Serial.println((numWrites * PRINT_BUF_MULT) / (tmpTime / 1000000.0));
+		Serial.println(PSTR("Time Deltas"));
 		for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
 		{
 			int delta = pBuf.time[i] - pBuf.time[i - 1];
 			if (delta < 0 || delta == 0)
 			{
-				Serial.print("NA,");
+				Serial.print(PSTR("NA,"));
 			}
 			else
 			{
 				Serial.print(delta);
-				Serial.print(",");
+				Serial.print(PSTR(","));
 			}
 		}
 		Serial.println();
@@ -335,6 +337,7 @@ void serialEvent()
 
 void adc_isr()
 {
+	digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 	//read in adc channels
 	for (int i = 0; i < ADC_CHAN; i++)
 	{
@@ -353,7 +356,7 @@ void adc_isr()
 
 void printPBuf(int offset)
 {
-	debug("offset: ", offset);
+	debug(PSTR("offset: "), offset);
 	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
 		Serial.print(pBuf.time[j]);
@@ -362,7 +365,7 @@ void printPBuf(int offset)
 
 		while (d < 15)
 		{
-			Serial.print(" ");
+			Serial.print(PSTR(" "));
 			d++;
 		}
 
