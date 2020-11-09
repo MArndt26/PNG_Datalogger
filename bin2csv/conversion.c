@@ -4,7 +4,7 @@
 #include <string.h>
 
 #define CREATE_INT_FILE
-// #define CREATE_VOLTAGE_FILE
+#define CREATE_VOLTAGE_FILE
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 

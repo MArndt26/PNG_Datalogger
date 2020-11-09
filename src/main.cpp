@@ -278,7 +278,7 @@ void loop()
 				{
 					pBuf.data[offset][ADC_CHAN * j + i] = 0;
 				}
-				pBuf.time[offset] = time;
+				pBuf.time[offset] = 0;
 				offset++;
 				if (offset >= PRINT_BUF_MULT)
 				{
