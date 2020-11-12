@@ -4,7 +4,11 @@
 #include <string.h>
 
 #define CREATE_INT_FILE
-#define CREATE_VOLTAGE_FILE
+// #define CREATE_VOLTAGE_FILE
+
+//Meta Data
+#define TRACK_MAX_DT
+// #define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
@@ -24,7 +28,7 @@
 
 #define ADC_CHAN 10
 #define MUXED_CHAN 6
-#define PRINT_BUF_MULT 3000
+#define PRINT_BUF_MULT 1000
 
 struct printBuf
 {
@@ -116,8 +120,13 @@ int main(int argc, char *argv[])
 #endif
 
     struct printBuf pBuf;
-
+#ifdef REMOVE_ZERO_DATA
     int numDeletes = 0;
+#endif
+#ifdef TRACK_MAX_DT
+    int maxDT = 0;
+#endif
+
     int prevTime = 0;
 
     while (fread(&pBuf, sizeof(struct printBuf), 1, inFilePtr))
@@ -126,12 +135,25 @@ int main(int argc, char *argv[])
         {
             int curTime = pBuf.time[i];
 
+#ifdef REMOVE_ZERO_DATA
             if (curTime != 0)
             {
+#endif
 
 #ifdef CREATE_INT_FILE
+                int deltaT = curTime - prevTime;
+#ifdef TRACK_MAX_DT
+                if (prevTime == 0)
+                {
+                    deltaT = -999; //flagged as invalid data for first delta
+                }
+                if (deltaT > maxDT)
+                {
+                    maxDT = deltaT;
+                }
+#endif
                 fprintf(intOutFilePtr, "%10u, ", curTime);
-                fprintf(intOutFilePtr, "%10d, ", curTime - prevTime);
+                fprintf(intOutFilePtr, "%10d, ", deltaT);
                 for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
@@ -141,7 +163,7 @@ int main(int argc, char *argv[])
 
 #ifdef CREATE_VOLTAGE_FILE
                 fprintf(outFilePtr, "%10u, ", curTime);
-                fprintf(outFilePtr, "%10d, ", curTime - prevTime);
+                fprintf(outFilePtr, "%10d, ", deltaT);
                 for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
@@ -151,15 +173,21 @@ int main(int argc, char *argv[])
 #endif
 
                 prevTime = pBuf.time[i];
+#ifdef REMOVE_ZERO_DATA
             }
             else
             {
                 numDeletes++;
             }
+#endif
         }
     }
-
+#ifdef REMOVE_ZERO_DATA
     printf("Number of rows deleted: %d\n", numDeletes);
+#endif
+#ifdef TRACK_MAX_DT
+    printf("Largest Delta T: %d\n", maxDT);
+#endif
 
     fclose(inFilePtr);
 
