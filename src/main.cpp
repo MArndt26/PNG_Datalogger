@@ -68,7 +68,7 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 500;
+const int PRINT_BUF_MULT = 1000;
 
 const int SERIAL_BUF_DISP = 20;
 
@@ -434,7 +434,6 @@ void adc_isr()
 	offset++;
 	if (offset >= PRINT_BUF_MULT)
 	{
-		offset = 0; //wrap around buffer;
 		if (wBuf == nullptr)
 		{
 			wBuf = rBuf; //set write buffer
@@ -442,9 +441,12 @@ void adc_isr()
 		else
 		{
 			numErrors++;
+			offset--;
 			return;
 			// error(PSTR("Tried to overwrite non null wBuf"));
 		}
+
+		offset = 0; //wrap around buffer;
 
 		if (rBuf == &pB1)
 		{
