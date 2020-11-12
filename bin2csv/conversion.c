@@ -2,13 +2,14 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <limits.h>
 
 #define CREATE_INT_FILE
 // #define CREATE_VOLTAGE_FILE
 
 //Meta Data
-#define TRACK_MAX_DT
-// #define REMOVE_ZERO_DATA
+#define TRACK_EXTREME_DT
+#define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
@@ -123,8 +124,9 @@ int main(int argc, char *argv[])
 #ifdef REMOVE_ZERO_DATA
     int numDeletes = 0;
 #endif
-#ifdef TRACK_MAX_DT
-    int maxDT = 0;
+#ifdef TRACK_EXTREME_DT
+    int maxDT = INT_MIN;
+    int minDT = INT_MAX;
 #endif
 
     int prevTime = 0;
@@ -142,15 +144,23 @@ int main(int argc, char *argv[])
 
 #ifdef CREATE_INT_FILE
                 int deltaT = curTime - prevTime;
-#ifdef TRACK_MAX_DT
+#ifdef TRACK_EXTREME_DT
                 if (prevTime == 0)
                 {
                     deltaT = -999; //flagged as invalid data for first delta
                 }
-                if (deltaT > maxDT)
+                else //don't consider invalid data in meta
                 {
-                    maxDT = deltaT;
+                    if (deltaT > maxDT)
+                    {
+                        maxDT = deltaT;
+                    }
+                    if (deltaT < minDT)
+                    {
+                        minDT = deltaT;
+                    }
                 }
+
 #endif
                 fprintf(intOutFilePtr, "%10u, ", curTime);
                 fprintf(intOutFilePtr, "%10d, ", deltaT);
@@ -185,8 +195,9 @@ int main(int argc, char *argv[])
 #ifdef REMOVE_ZERO_DATA
     printf("Number of rows deleted: %d\n", numDeletes);
 #endif
-#ifdef TRACK_MAX_DT
-    printf("Largest Delta T: %d\n", maxDT);
+#ifdef TRACK_EXTREME_DT
+    printf("Max Delta T: %d\n", maxDT);
+    printf("Min Delta T: %d\n", minDT);
 #endif
 
     fclose(inFilePtr);
