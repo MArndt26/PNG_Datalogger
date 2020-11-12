@@ -28,6 +28,7 @@
 #include "helpers.h"
 
 // #define SERIAL_DEBUG
+#define SAMPLING_PERIOD 900
 
 void printPBuf(int offset);
 
@@ -64,7 +65,7 @@ elapsedMicros time;
 
 unsigned int adcTime;
 
-const int PRINT_BUF_MULT = 3000;
+const int PRINT_BUF_MULT = 1000;
 
 const int SERIAL_BUF_DISP = 20;
 
@@ -76,7 +77,10 @@ struct printBuf
 
 int offset;
 
-struct printBuf pBuf;
+struct printBuf pB1;
+struct printBuf pB2;
+
+struct printBuf *pBptr = &pB1;
 
 enum LOGGER_STATE
 {
@@ -152,16 +156,16 @@ void loop()
 	case CREATE_FILE:
 	{
 		Serial.println(PSTR("Initializing Buffer..."));
-		for (unsigned int i = 0; i < sizeof(pBuf.time) / sizeof(pBuf.time[0]); i++)
+		for (unsigned int i = 0; i < sizeof(pBptr->time) / sizeof(pBptr->time[0]); i++)
 		{
-			pBuf.time[i] = 0;
+			pBptr->time[i] = 0;
 		}
 
 		for (int j = 0; j < PRINT_BUF_MULT; j++)
 		{
 			for (int i = 0; i < ADC_CHAN; i++)
 			{
-				pBuf.data[j][i] = 0;
+				pBptr->data[j][i] = 0;
 			}
 		}
 
@@ -217,7 +221,7 @@ void loop()
 	}
 	case START_COLLECTION:
 	{
-		adcTimer.begin(adc_isr, 900);
+		adcTimer.begin(adc_isr, SAMPLING_PERIOD);
 		logger_state = WRITE;
 		break;
 	}
@@ -229,7 +233,27 @@ void loop()
 
 			digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
 
-			dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+			struct printBuf *prevPtr = pBptr;
+
+			if (prevPtr == &pB1)
+			{
+				pBptr = &pB2;
+			}
+			else if (prevPtr == &pB2)
+			{
+				pBptr = &pB1;
+			}
+			else
+			{
+				Serial.println(PSTR("Something is messed up with pBuf"));
+				Serial.println(PSTR("Endless loop"));
+				while (1)
+				{
+					blink(1, 250);
+				}
+			}
+
+			dataFile.write((const uint8_t *)prevPtr, sizeof(printBuf));
 
 			numWrites++;
 
@@ -276,9 +300,9 @@ void loop()
 			{
 				for (int i = 0; i < ADC_CHAN; i++)
 				{
-					pBuf.data[offset][ADC_CHAN * j + i] = 0;
+					pBptr->data[offset][ADC_CHAN * j + i] = 0;
 				}
-				pBuf.time[offset] = 0;
+				pBptr->time[offset] = 0;
 				offset++;
 				if (offset >= PRINT_BUF_MULT)
 				{
@@ -289,7 +313,7 @@ void loop()
 
 	END_WHILE:
 
-		dataFile.write((const uint8_t *)&pBuf, sizeof(pBuf));
+		dataFile.write((const uint8_t *)pBptr, sizeof(printBuf));
 		numWrites++;
 
 		dataFile.close();
@@ -302,7 +326,7 @@ void loop()
 		Serial.println(PSTR("Time Deltas"));
 		for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
 		{
-			int delta = pBuf.time[i] - pBuf.time[i - 1];
+			int delta = pBptr->time[i] - pBptr->time[i - 1];
 			if (delta < 0 || delta == 0)
 			{
 				Serial.print(PSTR("NA,"));
@@ -405,11 +429,11 @@ void adc_isr()
 		//read in adc channels
 		for (int i = 0; i < ADC_CHAN; i++)
 		{
-			pBuf.data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
+			pBptr->data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 		}
 	}
 
-	pBuf.time[offset] = time;
+	pBptr->time[offset] = time;
 
 	offset++;
 	if (offset >= PRINT_BUF_MULT)
@@ -424,9 +448,9 @@ void printPBuf(int offset)
 	debug(PSTR("offset: "), offset);
 	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
-		Serial.print(pBuf.time[j]);
+		Serial.print(pBptr->time[j]);
 
-		int d = countDigits(pBuf.time[j]);
+		int d = countDigits(pBptr->time[j]);
 
 		while (d < 15)
 		{
@@ -437,7 +461,7 @@ void printPBuf(int offset)
 		Serial.print(',');
 		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
 		{
-			Serial.print(pBuf.data[j][i]);
+			Serial.print(pBptr->data[j][i]);
 
 			Serial.print(',');
 		}
