@@ -27,8 +27,10 @@
 
 #include "helpers.h"
 
-// #define SERIAL_DEBUG
+#define SERIAL_DEBUG
 #define SAMPLING_PERIOD 1000
+
+const int SERIAL_BUF_DISP = 5;
 
 void printPBuf(int offset);
 
@@ -70,18 +72,20 @@ unsigned int adcTime;
 
 const int PRINT_BUF_MULT = 1000;
 
-const int SERIAL_BUF_DISP = 20;
-
 struct printBuf
 {
 	unsigned int time[PRINT_BUF_MULT];
 	uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
 } printBuf;
 
-int offset;
+volatile int offset;
 
 struct printBuf pB1;
 struct printBuf pB2;
+struct printBuf pBOver;
+
+volatile int preOverflowBuffer = 0;
+volatile int buf_overflow_offset = 0;
 
 struct printBuf *wBuf = nullptr;
 struct printBuf *rBuf = &pB1;
@@ -221,9 +225,7 @@ void loop()
 	}
 	case START_COLLECTION:
 	{
-#ifdef SERIAL_DEBUG
-		adcTimer.begin(adc_isr, 1000000);
-#else
+#ifndef SERIAL_DEBUG
 		adcTimer.begin(adc_isr, SAMPLING_PERIOD);
 #endif
 		logger_state = WRITE;
@@ -231,6 +233,12 @@ void loop()
 	}
 	case WRITE:
 	{
+#ifdef SERIAL_DEBUG
+		adc_isr();
+		debug("offset: ", offset);
+		debug("overflow offset: ", buf_overflow_offset);
+		delay(1000);
+#endif
 		if (adc_ready_flag)
 		{
 			adc_ready_flag = 0;
@@ -245,6 +253,20 @@ void loop()
 			dataFile.write((const uint8_t *)wBuf, sizeof(printBuf));
 
 			wBuf = nullptr; //clear write buffer
+
+			if (buf_overflow_offset > 0)
+			{
+				for (int i = buf_overflow_offset; i < PRINT_BUF_MULT; i++)
+				{
+					pBOver.time[i] = 0; //signify junk data with zeros for time
+										// for (int j = 0; j < MUXED_CHAN * ADC_CHAN; j++)
+										// {
+										// 	pBOver.data[i][j] = 0;
+										// }
+				}
+				dataFile.write((const uint8_t *)&pBOver, sizeof(printBuf));
+				buf_overflow_offset = 0;
+			}
 
 			numWrites++;
 
@@ -377,6 +399,12 @@ void adc_isr()
 		error(PSTR("Buffer Overrun Error!"));
 	}
 
+	volatile int *off = &offset;
+	if (rBuf == &pBOver)
+	{
+		off = &buf_overflow_offset; //change offset for overflow case
+	}
+
 	for (int j = 0; j < MUXED_CHAN; j++)
 	{
 		/**
@@ -425,15 +453,20 @@ void adc_isr()
 		//read in adc channels
 		for (int i = 0; i < ADC_CHAN; i++)
 		{
-			rBuf->data[offset][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
+			rBuf->data[*off][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
 		}
 	}
 
-	rBuf->time[offset] = time;
+	rBuf->time[*off] = time;
 
-	offset++;
-	if (offset >= PRINT_BUF_MULT)
+	(*off)++;
+	if (*off >= PRINT_BUF_MULT)
 	{
+		if (rBuf == &pBOver)
+		{
+			error(PSTR("Overflowed the overflow buffer"));
+		}
+
 		if (wBuf == nullptr)
 		{
 			wBuf = rBuf; //set write buffer
@@ -441,7 +474,21 @@ void adc_isr()
 		else
 		{
 			numErrors++;
-			offset--;
+			// offset--;
+			if (rBuf == &pB1)
+			{
+				preOverflowBuffer = 1;
+			}
+			else if (rBuf == &pB2)
+			{
+				preOverflowBuffer = 2;
+			}
+			else
+			{
+				error(PSTR("Invalid rBuf before overflow"));
+			}
+
+			rBuf = &pBOver; //set overflow buffer;
 			return;
 			// error(PSTR("Tried to overwrite non null wBuf"));
 		}
@@ -461,6 +508,27 @@ void adc_isr()
 			error(PSTR("Invalid Read Buffer"));
 		}
 		adc_ready_flag = 1;
+	}
+	else if (rBuf == &pBOver && wBuf == nullptr)
+	{
+		//write complete in offset case
+
+		if (preOverflowBuffer == 1)
+		{
+			wBuf = &pB1;
+			rBuf = &pB2;
+		}
+		else if (preOverflowBuffer == 2)
+		{
+			wBuf = &pB2;
+			rBuf = &pB1;
+		}
+		else
+		{
+			error(PSTR("Invalid before set after overflow completion"));
+		}
+
+		adc_ready_flag = 1; //set adc_ready_flag
 	}
 }
 
