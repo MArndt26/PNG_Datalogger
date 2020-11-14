@@ -27,21 +27,25 @@
 
 #include "helpers.h"
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 #define SERIAL_DELAY 1000
 int debug_rst_overflow = 0;
 
 #define SAMPLING_PERIOD 1000
 
-const int SERIAL_BUF_DISP = 3;
+const int SERIAL_BUF_DISP = 5;
 
-const int PRINT_BUF_MULT = 5;
+const int PRINT_BUF_MULT = 1000;
 
 void printPBuf(int offset, struct printBuf *buf);
 
 void adc_isr();
 
 void printBufInfo();
+
+void printBuffer(String name, struct printBuf *buf);
+
+int getBufNum(struct printBuf *buf);
 
 void error(const String msg);
 
@@ -220,6 +224,8 @@ void loop()
 #endif
 
 		numWrites = 0;
+		rBuf = &pB1;
+		wBuf = nullptr;
 
 		break;
 	}
@@ -239,6 +245,7 @@ void loop()
 	case WRITE:
 	{
 #ifdef SERIAL_DEBUG
+		printBufInfo();
 		adc_isr();
 		debug("offset: ", offset);
 		debug("overflow offset: ", buf_overflow_offset);
@@ -262,11 +269,15 @@ void loop()
 
 			wBuf = nullptr; //clear write buffer
 #else
+			printBuffer("wBuf: ", wBuf);
 			printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, wBuf);
 #endif
 
 			if (buf_overflow_offset > 0)
 			{
+#ifdef SERIAL_DEBUG
+				debug("buf_overflow_offset: ", buf_overflow_offset);
+#endif
 				for (int i = buf_overflow_offset; i < PRINT_BUF_MULT; i++)
 				{
 					pBOver.time[i] = 0; //signify junk data with zeros for time
@@ -280,6 +291,7 @@ void loop()
 				dataFile.write((const uint8_t *)&pBOver, sizeof(printBuf));
 				buf_overflow_offset = 0;
 #else
+				printBuffer("pBover: ", &pBOver);
 				printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, &pBOver);
 #endif
 			}
@@ -404,7 +416,7 @@ void adc_isr()
 	digitalToggle(LED_BUILTIN);
 
 #ifdef SERIAL_DEBUG
-	if ((numErrors > 5) && (debug_rst_overflow == 0))
+	if ((buf_overflow_offset > 1) && (debug_rst_overflow == 0))
 	{
 		debug_rst_overflow = 1;
 		wBuf = nullptr; //clear printing
@@ -507,7 +519,7 @@ void adc_isr()
 			offset = 0;			  //wrap around buffer;
 			print_ready_flag = 1; //set print_ready_flag
 		}
-		else //normal opperation
+		else if (*off >= PRINT_BUF_MULT) //need to switch buffer
 		{
 			wBuf = rBuf; //set write buffer
 
@@ -569,8 +581,6 @@ void printPBuf(int offset, struct printBuf *buf)
 {
 	debug(PSTR("print offset: "), offset);
 
-	printBufInfo();
-
 	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
 		Serial.print(buf->time[j]);
@@ -614,37 +624,60 @@ void error(String msg)
 
 void printBufInfo()
 {
-	if (rBuf == &pB1)
-	{
-		Serial.println("rBuf is pB1");
-	}
-	else if (rBuf == &pB2)
-	{
-		Serial.println("rBuf is pB2");
-	}
-	else if (rBuf == &pBOver)
-	{
-		Serial.println("rBuf is pBOver");
-	}
-	else
-	{
-		error("Invalid pBuf in print function for rBuf");
-	}
+	printBuffer("rBuf: ", rBuf);
+	printBuffer("wBuf: ", wBuf);
+}
 
-	if (wBuf == &pB1)
+void printBuffer(String name, struct printBuf *buf)
+{
+	Serial.print(name);
+
+	int n = getBufNum(buf);
+	switch (n)
 	{
-		Serial.println("wBuf is pB1");
+	case 1:
+	{
+		Serial.println("pB1");
+		break;
 	}
-	else if (wBuf == &pB2)
+	case 2:
 	{
-		Serial.println("wBuf is pB2");
+		Serial.println("pB2");
+		break;
 	}
-	else if (wBuf == nullptr)
+	case 3:
 	{
-		Serial.println("wBuf is nullptr");
+		Serial.println("pBOver");
+		break;
+	}
+	default:
+	{
+		Serial.println("invalid buffer");
+		break;
+	}
+	}
+}
+
+int getBufNum(struct printBuf *buf)
+{
+	if (buf == &pB1)
+	{
+		return 1;
+	}
+	else if (buf == &pB2)
+	{
+		return 2;
+	}
+	else if (buf == &pBOver)
+	{
+		return 3;
+	}
+	else if (buf == nullptr)
+	{
+		return 4;
 	}
 	else
 	{
-		error("Invalid pBuf in print function for wBuf");
+		return -1;
 	}
 }
