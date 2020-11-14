@@ -27,7 +27,7 @@
 
 #include "helpers.h"
 
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 #define SERIAL_DELAY 1000000
 int stall_print = 0;
 
@@ -293,6 +293,7 @@ void loop()
 
 			if (print_overflow_flag)
 			{
+				print_overflow_flag = 0;
 #ifdef SERIAL_DEBUG
 				debug("buf_overflow_offset: ", buf_overflow_offset);
 #endif
