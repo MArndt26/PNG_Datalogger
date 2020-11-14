@@ -28,13 +28,20 @@
 #include "helpers.h"
 
 #define SERIAL_DEBUG
+#define SERIAL_DELAY 1000
+int debug_rst_overflow = 0;
+
 #define SAMPLING_PERIOD 1000
 
-const int SERIAL_BUF_DISP = 5;
+const int SERIAL_BUF_DISP = 3;
 
-void printPBuf(int offset);
+const int PRINT_BUF_MULT = 5;
+
+void printPBuf(int offset, struct printBuf *buf);
 
 void adc_isr();
+
+void printBufInfo();
 
 void error(const String msg);
 
@@ -42,7 +49,7 @@ IntervalTimer adcTimer;
 
 ADC *adc = new ADC();
 
-volatile int adc_ready_flag = 0;
+volatile int print_ready_flag = 0;
 volatile int sd_print_comp_flag = 1;
 
 const int ADC_CHAN = 10;
@@ -69,8 +76,6 @@ int numErrors = 0;
 elapsedMicros time;
 
 unsigned int adcTime;
-
-const int PRINT_BUF_MULT = 1000;
 
 struct printBuf
 {
@@ -237,11 +242,13 @@ void loop()
 		adc_isr();
 		debug("offset: ", offset);
 		debug("overflow offset: ", buf_overflow_offset);
-		delay(1000);
+		printBufInfo();
+		Serial.println();
+		delay(SERIAL_DELAY);
 #endif
-		if (adc_ready_flag)
+		if (print_ready_flag)
 		{
-			adc_ready_flag = 0;
+			print_ready_flag = 0;
 
 			digitalToggleFast(LED_BUILTIN);
 
@@ -250,9 +257,13 @@ void loop()
 				error("wBuf is nullptr");
 			}
 
+#ifndef SERIAL_DEBUG
 			dataFile.write((const uint8_t *)wBuf, sizeof(printBuf));
 
 			wBuf = nullptr; //clear write buffer
+#else
+			printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, wBuf);
+#endif
 
 			if (buf_overflow_offset > 0)
 			{
@@ -264,31 +275,21 @@ void loop()
 										// 	pBOver.data[i][j] = 0;
 										// }
 				}
+
+#ifndef SERIAL_DEBUG
 				dataFile.write((const uint8_t *)&pBOver, sizeof(printBuf));
 				buf_overflow_offset = 0;
+#else
+				printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, &pBOver);
+#endif
 			}
 
 			numWrites++;
-
-#ifdef SERIAL_DEBUG
-			debug(PSTR("offset: "), offset);
-			int tempOffset = offset;
-			tempOffset -= SERIAL_BUF_DISP;
-			if (tempOffset < 0)
-			{
-				tempOffset = 0;
-			}
-			printPBuf(tempOffset);
-
-			delay(500);
-#endif
 		}
 		break;
 	}
 	case CLOSE:
 	{
-		int tmpTime = time;
-
 		adcTimer.end();
 
 		Serial.println(PSTR("Halted Data Collection"));
@@ -306,53 +307,62 @@ void loop()
 		}
 		debug(PSTR("finalOffset: "), finalOffset);
 
-		// time = time - tmpTime;
-		while (1)
+		Serial.println(PSTR("Flushing Write Buffer"));
+
+		if (rBuf == &pBOver)
 		{
-			for (int j = 0; j < MUXED_CHAN; j++)
-			{
-				for (int i = 0; i < ADC_CHAN; i++)
-				{
-					rBuf->data[offset][ADC_CHAN * j + i] = 0;
-				}
-				rBuf->time[offset] = 0;
-				offset++;
-				if (offset >= PRINT_BUF_MULT)
-				{
-					goto END_WHILE;
-				}
-			}
+			Serial.println(PSTR("rBuf is pBOver"));
+		}
+		else if (rBuf == &pB1)
+		{
+			Serial.println(PSTR("rBuf is pB1"));
+		}
+		else if (rBuf == &pB2)
+		{
+			Serial.println(PSTR("rBuf is pB2"));
+		}
+		else
+		{
+			error(PSTR("invalid rBuf in close"));
 		}
 
-	END_WHILE:
+		for (int i = offset; i < PRINT_BUF_MULT; i++)
+		{
+			rBuf->time[i] = 0; //zero fill rest of data
+		}
+
+		debug("offset: ", offset);
 
 		dataFile.write((const uint8_t *)rBuf, sizeof(printBuf)); //write out rest of read buffer
 
 		numWrites++;
 
 		dataFile.close();
-		debug(PSTR("Number of errors: "), numErrors);
-		debug(PSTR("Number of writes: "), numWrites);
-		debug(PSTR("time: "), tmpTime);
-		debug(PSTR("Avg Write Freq: "), (numWrites * PRINT_BUF_MULT) / (tmpTime / 1000000.0));
-		Serial.println(PSTR("Time Deltas"));
-		for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
-		{
-			int delta = wBuf->time[i] - wBuf->time[i - 1];
-			if (delta < 0 || delta == 0)
-			{
-				Serial.print(PSTR("NA,"));
-			}
-			else
-			{
-				Serial.print(delta);
-				Serial.print(PSTR(","));
-			}
-		}
-		Serial.println();
 
-		Serial.println("last pBuf: ");
-		printPBuf(finalOffset);
+		debug("number of errors: ", numErrors);
+		// This part is not working and freezing serial right now
+		// debug(PSTR("Number of errors: "), numErrors);
+		// debug(PSTR("Number of writes: "), numWrites);
+		// debug(PSTR("time: "), tmpTime);
+		// debug(PSTR("Avg Write Freq: "), (numWrites * PRINT_BUF_MULT) / (tmpTime / 1000000.0));
+		// Serial.println(PSTR("Time Deltas"));
+		// for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
+		// {
+		// 	int delta = wBuf->time[i] - wBuf->time[i - 1];
+		// 	if (delta < 0 || delta == 0)
+		// 	{
+		// 		Serial.print(PSTR("NA,"));
+		// 	}
+		// 	else
+		// 	{
+		// 		Serial.print(delta);
+		// 		Serial.print(PSTR(","));
+		// 	}
+		// }
+		// Serial.println();
+
+		// Serial.println("last pBuf: ");
+		// printPBuf(finalOffset);
 		logger_state = IDLE;
 
 		break;
@@ -393,6 +403,14 @@ void adc_isr()
 {
 	digitalToggle(LED_BUILTIN);
 
+#ifdef SERIAL_DEBUG
+	if ((numErrors > 5) && (debug_rst_overflow == 0))
+	{
+		debug_rst_overflow = 1;
+		wBuf = nullptr; //clear printing
+	}
+#endif
+
 	if (rBuf == wBuf)
 	{
 		debug("Num Writes: ", numWrites);
@@ -403,6 +421,11 @@ void adc_isr()
 	if (rBuf == &pBOver)
 	{
 		off = &buf_overflow_offset; //change offset for overflow case
+	}
+
+	if (*off >= PRINT_BUF_MULT)
+	{
+		error(PSTR("offset too large"));
 	}
 
 	for (int j = 0; j < MUXED_CHAN; j++)
@@ -460,86 +483,99 @@ void adc_isr()
 	rBuf->time[*off] = time;
 
 	(*off)++;
-	if (*off >= PRINT_BUF_MULT)
-	{
-		if (rBuf == &pBOver)
-		{
-			error(PSTR("Overflowed the overflow buffer"));
-		}
 
-		if (wBuf == nullptr)
+	if (wBuf == nullptr) //wBuf is empty (waiting to write)
+	{
+		if (rBuf == &pBOver) //reset overflow
 		{
-			wBuf = rBuf; //set write buffer
-		}
-		else
-		{
-			numErrors++;
-			// offset--;
-			if (rBuf == &pB1)
+			//reset wBuf and rBuf
+			if (preOverflowBuffer == 1)
 			{
-				preOverflowBuffer = 1;
+				wBuf = &pB1;
+				rBuf = &pB2;
 			}
-			else if (rBuf == &pB2)
+			else if (preOverflowBuffer == 2)
 			{
-				preOverflowBuffer = 2;
+				wBuf = &pB2;
+				rBuf = &pB1;
 			}
 			else
 			{
-				error(PSTR("Invalid rBuf before overflow"));
+				error(PSTR("Invalid before set after overflow completion"));
 			}
 
-			rBuf = &pBOver; //set overflow buffer;
-			return;
-			// error(PSTR("Tried to overwrite non null wBuf"));
+			offset = 0;			  //wrap around buffer;
+			print_ready_flag = 1; //set print_ready_flag
 		}
+		else //normal opperation
+		{
+			wBuf = rBuf; //set write buffer
 
-		offset = 0; //wrap around buffer;
+			//swap read buffer
+			if (rBuf == &pB1)
+			{
+				rBuf = &pB2;
+			}
+			else if (rBuf == &pB2)
+			{
+				rBuf = &pB1;
+			}
+			else
+			{
+				error(PSTR("Invalid Read Buffer"));
+			}
 
-		if (rBuf == &pB1)
-		{
-			rBuf = &pB2;
+			offset = 0;			  //wrap around buffer;
+			print_ready_flag = 1; //set print flag
 		}
-		else if (rBuf == &pB2)
-		{
-			rBuf = &pB1; //wrap around case
-		}
-		else
-		{
-			error(PSTR("Invalid Read Buffer"));
-		}
-		adc_ready_flag = 1;
 	}
-	else if (rBuf == &pBOver && wBuf == nullptr)
+	else //wBuf is full (write is busy)
 	{
-		//write complete in offset case
+		if (*off >= PRINT_BUF_MULT) //need to switch buffer
+		{
+			if (rBuf == &pBOver) //already in overflow (lose data)
+			{
+				numErrors++;
+				(*off)--; //discard last sample
+			}
+			else if (buf_overflow_offset > 0) //waiting to write overflow buf
+			{
+				numErrors++;
+				(*off)--; //discard last sample
+			}
+			else //switch to overflow buffer
+			{
+				//track previous buffer before overflow
+				if (rBuf == &pB1)
+				{
+					preOverflowBuffer = 1;
+				}
+				else if (rBuf == &pB2)
+				{
+					preOverflowBuffer = 2;
+				}
+				else
+				{
+					error(PSTR("Invalid rBuf before overflow"));
+				}
 
-		if (preOverflowBuffer == 1)
-		{
-			wBuf = &pB1;
-			rBuf = &pB2;
+				rBuf = &pBOver; //set overflow buffer;
+			}
 		}
-		else if (preOverflowBuffer == 2)
-		{
-			wBuf = &pB2;
-			rBuf = &pB1;
-		}
-		else
-		{
-			error(PSTR("Invalid before set after overflow completion"));
-		}
-
-		adc_ready_flag = 1; //set adc_ready_flag
 	}
 }
 
-void printPBuf(int offset)
+void printPBuf(int offset, struct printBuf *buf)
 {
-	debug(PSTR("offset: "), offset);
+	debug(PSTR("print offset: "), offset);
+
+	printBufInfo();
+
 	for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
 	{
-		Serial.print(rBuf->time[j]);
+		Serial.print(buf->time[j]);
 
-		int d = countDigits(rBuf->time[j]);
+		int d = countDigits(buf->time[j]);
 
 		while (d < 15)
 		{
@@ -550,7 +586,7 @@ void printPBuf(int offset)
 		Serial.print(',');
 		for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
 		{
-			Serial.print(rBuf->data[j][i]);
+			Serial.print(buf->data[j][i]);
 
 			Serial.print(',');
 		}
@@ -562,12 +598,53 @@ void error(String msg)
 {
 	adcTimer.end();
 
+	Serial.println(msg);
+
 	debug("numWrites: ", numWrites);
 
-	Serial.println(msg);
+	debug("offset: ", offset);
+
+	debug("overflow offset: ", buf_overflow_offset);
 
 	while (1)
 	{
 		blink(1, 200);
+	}
+}
+
+void printBufInfo()
+{
+	if (rBuf == &pB1)
+	{
+		Serial.println("rBuf is pB1");
+	}
+	else if (rBuf == &pB2)
+	{
+		Serial.println("rBuf is pB2");
+	}
+	else if (rBuf == &pBOver)
+	{
+		Serial.println("rBuf is pBOver");
+	}
+	else
+	{
+		error("Invalid pBuf in print function for rBuf");
+	}
+
+	if (wBuf == &pB1)
+	{
+		Serial.println("wBuf is pB1");
+	}
+	else if (wBuf == &pB2)
+	{
+		Serial.println("wBuf is pB2");
+	}
+	else if (wBuf == nullptr)
+	{
+		Serial.println("wBuf is nullptr");
+	}
+	else
+	{
+		error("Invalid pBuf in print function for wBuf");
 	}
 }
