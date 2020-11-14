@@ -27,19 +27,25 @@
 
 #include "helpers.h"
 
-// #define SERIAL_DEBUG
-#define SERIAL_DELAY 1000
-int debug_rst_overflow = 0;
+#define SERIAL_DEBUG
+#define SERIAL_DELAY 1000000
+int stall_print = 0;
 
 #define SAMPLING_PERIOD 1000
 
+#ifdef SERIAL_DEBUG
 const int SERIAL_BUF_DISP = 5;
-
+const int PRINT_BUF_MULT = 5;
+#else
+const int SERIAL_BUF_DISP = 5;
 const int PRINT_BUF_MULT = 1000;
+#endif
 
 void printPBuf(int offset, struct printBuf *buf);
 
 void adc_isr();
+
+void debugAll(String msg);
 
 void printBufInfo();
 
@@ -55,6 +61,7 @@ ADC *adc = new ADC();
 
 volatile int print_ready_flag = 0;
 volatile int sd_print_comp_flag = 1;
+volatile int print_overflow_flag = 0;
 
 const int ADC_CHAN = 10;
 
@@ -238,23 +245,20 @@ void loop()
 	{
 #ifndef SERIAL_DEBUG
 		adcTimer.begin(adc_isr, SAMPLING_PERIOD);
+#else
+		adcTimer.begin(adc_isr, SERIAL_DELAY);
 #endif
 		logger_state = WRITE;
 		break;
 	}
 	case WRITE:
 	{
-#ifdef SERIAL_DEBUG
-		printBufInfo();
-		adc_isr();
-		debug("offset: ", offset);
-		debug("overflow offset: ", buf_overflow_offset);
-		printBufInfo();
-		Serial.println();
-		delay(SERIAL_DELAY);
-#endif
 		if (print_ready_flag)
 		{
+#ifdef SERIAL_DEBUG
+			debugAll("inside print_ready_flag");
+#endif
+
 			print_ready_flag = 0;
 
 			digitalToggleFast(LED_BUILTIN);
@@ -266,14 +270,28 @@ void loop()
 
 #ifndef SERIAL_DEBUG
 			dataFile.write((const uint8_t *)wBuf, sizeof(printBuf));
-
-			wBuf = nullptr; //clear write buffer
 #else
 			printBuffer("wBuf: ", wBuf);
 			printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, wBuf);
-#endif
 
-			if (buf_overflow_offset > 0)
+			do
+			{
+				if (Serial.available())
+				{
+					char c = Serial.read();
+
+					Serial.println(c);
+
+					if (c == 'd')
+					{
+						stall_print = 0;
+					}
+				}
+			} while (stall_print); //wait for print to finish
+#endif
+			wBuf = nullptr; //clear write buffer
+
+			if (print_overflow_flag)
 			{
 #ifdef SERIAL_DEBUG
 				debug("buf_overflow_offset: ", buf_overflow_offset);
@@ -289,11 +307,12 @@ void loop()
 
 #ifndef SERIAL_DEBUG
 				dataFile.write((const uint8_t *)&pBOver, sizeof(printBuf));
-				buf_overflow_offset = 0;
 #else
 				printBuffer("pBover: ", &pBOver);
 				printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, &pBOver);
+
 #endif
+				buf_overflow_offset = 0;
 			}
 
 			numWrites++;
@@ -391,37 +410,41 @@ void serialEvent()
 	switch (c)
 	{
 	case 'c':
+	{
 		if (logger_state == IDLE)
 		{
 			logger_state = CREATE_FILE;
 		}
 		break;
+	}
 	case 's':
+	{
 		if (logger_state == FILE_LOADED)
 		{
 			logger_state = START_COLLECTION;
 		}
 		break;
+	}
 	case 'h':
+	{
 		if (logger_state == WRITE)
 		{
 			logger_state = CLOSE;
 		}
 		break;
 	}
+#ifdef SERIAL_DEBUG
+	case 'd':
+	{
+		stall_print = !stall_print;
+	}
+#endif
+	}
 }
 
 void adc_isr()
 {
 	digitalToggle(LED_BUILTIN);
-
-#ifdef SERIAL_DEBUG
-	if ((buf_overflow_offset > 1) && (debug_rst_overflow == 0))
-	{
-		debug_rst_overflow = 1;
-		wBuf = nullptr; //clear printing
-	}
-#endif
 
 	if (rBuf == wBuf)
 	{
@@ -516,8 +539,9 @@ void adc_isr()
 				error(PSTR("Invalid before set after overflow completion"));
 			}
 
-			offset = 0;			  //wrap around buffer;
-			print_ready_flag = 1; //set print_ready_flag
+			offset = 0;				 //wrap around buffer;
+			print_ready_flag = 1;	 //set print_ready_flag
+			print_overflow_flag = 1; //set print_overflow_flag
 		}
 		else if (*off >= PRINT_BUF_MULT) //need to switch buffer
 		{
@@ -575,6 +599,10 @@ void adc_isr()
 			}
 		}
 	}
+
+#ifdef SERIAL_DEBUG
+	debugAll("end of adc_isr");
+#endif
 }
 
 void printPBuf(int offset, struct printBuf *buf)
@@ -650,6 +678,11 @@ void printBuffer(String name, struct printBuf *buf)
 		Serial.println("pBOver");
 		break;
 	}
+	case 4:
+	{
+		Serial.println("nullptr");
+		break;
+	}
 	default:
 	{
 		Serial.println("invalid buffer");
@@ -680,4 +713,16 @@ int getBufNum(struct printBuf *buf)
 	{
 		return -1;
 	}
+}
+
+void debugAll(String msg)
+{
+	Serial.println(msg);
+	debug("stall print:     ", stall_print);
+	debug("print ready:     ", print_ready_flag);
+	debug("print overflow:  ", print_overflow_flag);
+	debug("offset:          ", offset);
+	debug("overflow offset: ", buf_overflow_offset);
+	printBufInfo();
+	Serial.println();
 }
