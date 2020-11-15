@@ -1,0 +1,16 @@
+#ifndef PNG_STATES_H
+#define PNG_STATES_H
+
+enum LOGGER_STATE
+{
+    IDLE,
+    CREATE_FILE,
+    FILE_LOADED,
+    START_COLLECTION,
+    WRITE,
+    CLOSE
+};
+
+LOGGER_STATE logger_state = IDLE;
+
+#endif
