@@ -5,9 +5,13 @@
 #include <SD.h>
 #include <SPI.h>
 
+#define FILE_BUF_SIZE 10
+
 const int chipSelect = BUILTIN_SDCARD;
 
-File dataFile;
-char fName[10];
+extern File dataFile;
+extern char fName[FILE_BUF_SIZE];
+
+void sd_init();
 
 #endif

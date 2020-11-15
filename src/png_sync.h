@@ -5,4 +5,6 @@
 
 #define SYNC_PIN 0
 
+void sync_init();
+
 #endif

@@ -31,4 +31,6 @@ void blink(int times, int d);
 
 void debug(String msg, int val);
 
+void serial_init();
+
 #endif

@@ -14,4 +14,6 @@ extern const uint8_t mux_pins[];
 
 extern int mux_state;
 
+void mux_init();
+
 #endif

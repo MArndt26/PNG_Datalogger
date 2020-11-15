@@ -1,7 +1,9 @@
-/*
-  SD card datalogger
-
-  Author: Mitchell Arndt
+/**
+ * PNG Datalogger
+ * https://github.com/MArndt26/PNG_Datalogger
+ * 
+ * Author: Mitchell Arndt
+ * created: 11/15/2020
  */
 #include "main.h"
 #include "png_adc.h"
@@ -27,41 +29,17 @@ void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
 
-	pinMode(SYNC_PIN, OUTPUT);
+	serial_init();
 
-	for (int i = 0; i < ADC_CHAN; i++)
-	{
-		pinMode(adc_pins[i], INPUT);
-	}
+	sync_init();
 
-	for (unsigned int i = 0; i < NUM_MUX_PINS; i++)
-	{
-		pinMode(mux_pins[i], OUTPUT);
-		digitalWriteFast(mux_pins[i], LOW); //initialize to low
-	}
+	mux_init();
 
 	adc_init();
 
-	// Open serial communications and wait for port to open:
-	Serial.begin(9600);
-	while (!Serial)
-		; // wait for serial port to connect.
-
-	Serial.print(PSTR("Initializing SD card..."));
-
-	// see if the card is present and can be initialized:
-	if (!SD.begin(chipSelect))
-	{
-		Serial.println(PSTR("Card failed, or not present"));
-		// don't do anything more:
-		return;
-	}
-
-	Serial.println(PSTR("card initialized."));
+	sd_init();
 }
 
-int value = 0;
-int pin = 0;
 void loop()
 {
 	switch (logger_state)

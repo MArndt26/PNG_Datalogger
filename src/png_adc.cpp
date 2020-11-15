@@ -175,6 +175,11 @@ void adc_isr()
 
 void adc_init()
 {
+    for (int i = 0; i < ADC_CHAN; i++)
+    {
+        pinMode(adc_pins[i], INPUT);
+    }
+
     ///// ADC0 ////
     adc->adc0->setAveraging(1);                                           // set number of averages
     adc->adc0->setResolution(12);                                         // set bits of resolution
