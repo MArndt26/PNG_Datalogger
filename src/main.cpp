@@ -41,6 +41,8 @@ const int SERIAL_BUF_DISP = 5;
 const int PRINT_BUF_MULT = 2000;
 #endif
 
+#define SYNC_PIN 0
+
 void printPBuf(int offset, struct printBuf *buf);
 
 void adc_isr();
@@ -121,6 +123,8 @@ LOGGER_STATE logger_state = IDLE;
 void setup()
 {
 	pinMode(LED_BUILTIN, OUTPUT);
+
+	pinMode(SYNC_PIN, OUTPUT);
 
 	for (int i = 0; i < ADC_CHAN; i++)
 	{
@@ -300,10 +304,6 @@ void loop()
 				for (int i = buf_overflow_offset; i < PRINT_BUF_MULT; i++)
 				{
 					pBOver.time[i] = 0; //signify junk data with zeros for time
-										// for (int j = 0; j < MUXED_CHAN * ADC_CHAN; j++)
-										// {
-										// 	pBOver.data[i][j] = 0;
-										// }
 				}
 
 #ifndef SERIAL_DEBUG
@@ -372,29 +372,7 @@ void loop()
 		dataFile.close();
 
 		debug("number of errors: ", numErrors);
-		// This part is not working and freezing serial right now
-		// debug(PSTR("Number of errors: "), numErrors);
-		// debug(PSTR("Number of writes: "), numWrites);
-		// debug(PSTR("time: "), tmpTime);
-		// debug(PSTR("Avg Write Freq: "), (numWrites * PRINT_BUF_MULT) / (tmpTime / 1000000.0));
-		// Serial.println(PSTR("Time Deltas"));
-		// for (int i = finalOffset + 1; i < finalOffset + SERIAL_BUF_DISP; i++)
-		// {
-		// 	int delta = wBuf->time[i] - wBuf->time[i - 1];
-		// 	if (delta < 0 || delta == 0)
-		// 	{
-		// 		Serial.print(PSTR("NA,"));
-		// 	}
-		// 	else
-		// 	{
-		// 		Serial.print(delta);
-		// 		Serial.print(PSTR(","));
-		// 	}
-		// }
-		// Serial.println();
 
-		// Serial.println("last pBuf: ");
-		// printPBuf(finalOffset);
 		logger_state = IDLE;
 
 		break;
@@ -446,6 +424,7 @@ void serialEvent()
 void adc_isr()
 {
 	digitalToggle(LED_BUILTIN);
+	digitalToggle(SYNC_PIN);
 
 	if (rBuf == wBuf)
 	{
