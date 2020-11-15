@@ -3,13 +3,15 @@
 
 #include <stdint.h>
 
-const uint8_t mux_pins[] = {30, 31}; //A B
-
-const uint8_t SEL_A = 0;
-const uint8_t SEL_B = 1;
-
-int mux_state = 0;
+#define NUM_MUX_PINS 2
 
 #define MUXED_CHAN 3
+
+#define SEL_A 0
+#define SEL_B 1
+
+extern const uint8_t mux_pins[];
+
+extern int mux_state;
 
 #endif

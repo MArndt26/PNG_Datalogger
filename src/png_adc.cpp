@@ -1,10 +1,14 @@
 #include "png_adc.h"
-#include "Arduino.h"
+#include "arduino.h"
 #include "png_sync.h"
 #include "png_buf.h"
 #include "png_mux.h"
 #include "png_serial.h"
 #include "main.h"
+
+IntervalTimer adcTimer;
+
+ADC *adc = new ADC();
 
 void adc_isr()
 {
@@ -167,5 +171,22 @@ void adc_isr()
 
 #ifdef SERIAL_DEBUG
     debugAll("end of adc_isr");
+#endif
+}
+
+void adc_init()
+{
+    ///// ADC0 ////
+    adc->adc0->setAveraging(1);                                           // set number of averages
+    adc->adc0->setResolution(12);                                         // set bits of resolution
+    adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
+    adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);     // change the sampling speed
+
+////// ADC1 /////
+#ifdef ADC_DUAL_ADCS
+    adc->adc1->setAveraging(1);                                           // set number of averages
+    adc->adc1->setResolution(12);                                         // set bits of resolution
+    adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
+    adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);     // change the sampling speed
 #endif
 }

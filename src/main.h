@@ -1,21 +1,21 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#include "arduino.h"
+#include "Arduino.h"
+#include <ADC.h>
+#include <ADC_util.h>
 
-volatile int print_ready_flag = 0;
-volatile int sd_print_comp_flag = 1;
-volatile int print_overflow_flag = 0;
+extern volatile int print_ready_flag;
+extern volatile int sd_print_comp_flag;
+extern volatile int print_overflow_flag;
 
 #define SAMPLING_PERIOD 500
 
-IntervalTimer adcTimer;
+extern int numWrites;
+extern int numErrors;
 
-int numWrites = 0;
-int numErrors = 0;
+extern elapsedMicros time;
 
-elapsedMicros time;
-
-unsigned int adcTime;
+extern unsigned int adcTime;
 
 #endif

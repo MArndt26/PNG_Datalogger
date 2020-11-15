@@ -1,23 +1,7 @@
 /*
   SD card datalogger
 
- This example shows how to log data from three analog sensors
- to an SD card using the SD library.
-
- The circuit:
- * analog sensors on analog ins 0, 1, and 2
- * SD card attached to SPI bus as follows:
- ** MOSI - pin 11, pin 7 on Teensy with audio board
- ** MISO - pin 12
- ** CLK - pin 13, pin 14 on Teensy with audio board
- ** CS - pin 4,  pin 10 on Teensy with audio board
-
- created  24 Nov 2010
- modified 9 Apr 2012
- by Tom Igoe
-
- This example code is in the public domain.
-
+  Author: Mitchell Arndt
  */
 #include "main.h"
 #include "png_adc.h"
@@ -27,6 +11,17 @@
 #include "png_serial.h"
 #include "png_states.h"
 #include "png_sync.h"
+
+volatile int print_ready_flag = 0;
+volatile int sd_print_comp_flag = 1;
+volatile int print_overflow_flag = 0;
+
+int numWrites = 0;
+int numErrors = 0;
+
+elapsedMicros time;
+
+unsigned int adcTime;
 
 void setup()
 {
@@ -39,25 +34,13 @@ void setup()
 		pinMode(adc_pins[i], INPUT);
 	}
 
-	for (unsigned int i = 0; i < sizeof(mux_pins) / sizeof(mux_pins[0]); i++)
+	for (unsigned int i = 0; i < NUM_MUX_PINS; i++)
 	{
 		pinMode(mux_pins[i], OUTPUT);
 		digitalWriteFast(mux_pins[i], LOW); //initialize to low
 	}
 
-	///// ADC0 ////
-	adc->adc0->setAveraging(1);											  // set number of averages
-	adc->adc0->setResolution(12);										  // set bits of resolution
-	adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
-	adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);	  // change the sampling speed
-
-////// ADC1 /////
-#ifdef ADC_DUAL_ADCS
-	adc->adc1->setAveraging(1);											  // set number of averages
-	adc->adc1->setResolution(12);										  // set bits of resolution
-	adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
-	adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);	  // change the sampling speed
-#endif
+	adc_init();
 
 	// Open serial communications and wait for port to open:
 	Serial.begin(9600);

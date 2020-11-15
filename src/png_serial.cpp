@@ -6,6 +6,8 @@
 #include "png_states.h"
 #include "main.h"
 
+int stall_print = 0;
+
 void printPBuf(int offset, struct printBuf *buf)
 {
     debug(PSTR("print offset: "), offset);

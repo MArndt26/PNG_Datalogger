@@ -5,7 +5,7 @@
 
 // #define SERIAL_DEBUG
 #define SERIAL_DELAY 1000000
-int stall_print = 0;
+extern int stall_print;
 
 #ifdef SERIAL_DEBUG
 const int SERIAL_BUF_DISP = 5;

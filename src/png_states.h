@@ -11,6 +11,6 @@ enum LOGGER_STATE
     CLOSE
 };
 
-LOGGER_STATE logger_state = IDLE;
+extern LOGGER_STATE logger_state;
 
 #endif
