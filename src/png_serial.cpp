@@ -1,10 +1,9 @@
+#include "main.h"
 #include "png_serial.h"
-#include "Arduino.h"
 #include "png_buf.h"
 #include "png_adc.h"
 #include "png_mux.h"
 #include "png_states.h"
-#include "main.h"
 
 int stall_print = 0;
 

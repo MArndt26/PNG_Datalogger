@@ -1,7 +1,7 @@
 #ifndef PNG_MUX_H
 #define PNG_MUX_H
 
-#include <stdint.h>
+#include "main.h"
 
 #define NUM_MUX_PINS 2
 

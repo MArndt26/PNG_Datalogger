@@ -1,10 +1,10 @@
 #ifndef PNG_SERIAL_H
 #define PNG_SERIAL_H
 
-#include "Arduino.h"
+#include "main.h"
 
-// #define SERIAL_DEBUG
 #define SERIAL_DELAY 1000000
+
 extern int stall_print;
 
 #ifdef SERIAL_DEBUG

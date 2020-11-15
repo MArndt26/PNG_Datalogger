@@ -1,7 +1,7 @@
 #ifndef PNG_BUF_H
 #define PNG_BUF_H
 
-#include <stdint.h>
+#include "main.h"
 #include "png_adc.h"
 #include "png_mux.h"
 

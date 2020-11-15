@@ -1,10 +1,9 @@
+#include "main.h"
 #include "png_adc.h"
-#include "arduino.h"
 #include "png_sync.h"
 #include "png_buf.h"
 #include "png_mux.h"
 #include "png_serial.h"
-#include "main.h"
 
 IntervalTimer adcTimer;
 

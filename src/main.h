@@ -3,6 +3,8 @@
 
 #include "Arduino.h"
 
+#define SERIAL_DEBUG
+
 extern volatile int print_ready_flag;
 extern volatile int sd_print_comp_flag;
 extern volatile int print_overflow_flag;

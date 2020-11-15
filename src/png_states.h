@@ -1,6 +1,8 @@
 #ifndef PNG_STATES_H
 #define PNG_STATES_H
 
+#include "main.h"
+
 enum LOGGER_STATE
 {
     IDLE,

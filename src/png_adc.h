@@ -1,6 +1,7 @@
 #ifndef PNG_ADC_H
 #define PNG_ADC_H
 
+#include "main.h"
 #include <ADC.h>
 
 extern IntervalTimer adcTimer;
