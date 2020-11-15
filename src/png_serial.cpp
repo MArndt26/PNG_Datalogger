@@ -34,7 +34,7 @@ void printPBuf(int offset, struct printBuf *buf)
     }
 }
 
-void error(String msg)
+void error(const char *msg)
 {
     adcTimer.end();
 
@@ -58,7 +58,7 @@ void printBufInfo()
     printBuffer("wBuf: ", wBuf);
 }
 
-void printBuffer(String name, struct printBuf *buf)
+void printBuffer(const char *name, struct printBuf *buf)
 {
     Serial.print(name);
 
@@ -117,16 +117,24 @@ int getBufNum(struct printBuf *buf)
     }
 }
 
-void debugAll(String msg)
+void debugAll(const char *msg)
 {
     Serial.println(msg);
-    debug("stall print:     ", stall_print);
-    debug("print ready:     ", print_ready_flag);
-    debug("print overflow:  ", print_overflow_flag);
-    debug("offset:          ", offset);
-    debug("overflow offset: ", buf_overflow_offset);
+    debugFormat("stall print:", stall_print);
+    debugFormat("print ready:", print_ready_flag);
+    debugFormat("print overflow:", print_overflow_flag);
+    debugFormat("offset:", offset);
+    debugFormat("overflow offset:", buf_overflow_offset);
     printBufInfo();
     Serial.println();
+}
+
+void debugFormat(const char *msg, int val)
+{
+    const int bufSize = 50;
+    char buf[bufSize];
+    sprintf(buf, "|%-20s|%-5d|\n", msg, val);
+    Serial.print(buf);
 }
 
 void blink(int times, int d)
@@ -155,7 +163,7 @@ int countDigits(int n)
     return count;
 }
 
-void debug(String msg, int val)
+void debug(const char *msg, int val)
 {
     Serial.print(msg);
     Serial.println(val);
