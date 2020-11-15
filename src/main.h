@@ -2,8 +2,6 @@
 #define MAIN_H
 
 #include "Arduino.h"
-#include <ADC.h>
-#include <ADC_util.h>
 
 extern volatile int print_ready_flag;
 extern volatile int sd_print_comp_flag;
