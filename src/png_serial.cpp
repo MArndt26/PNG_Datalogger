@@ -216,4 +216,5 @@ void serial_init()
     Serial.begin(9600);
     while (!Serial)
         ; // wait for serial port to connect.
+    Serial.println(PSTR("Serial Connected"));
 }

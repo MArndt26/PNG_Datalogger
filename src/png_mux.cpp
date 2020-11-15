@@ -11,4 +11,6 @@ void mux_init()
         pinMode(mux_pins[i], OUTPUT);
         digitalWriteFast(mux_pins[i], LOW); //initialize to low
     }
+
+    Serial.println(PSTR("Mux Pins Initialized"));
 }
