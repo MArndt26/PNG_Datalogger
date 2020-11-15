@@ -28,8 +28,8 @@
  */
 
 #define ADC_CHAN 10
-#define MUXED_CHAN 6
-#define PRINT_BUF_MULT 1000
+#define MUXED_CHAN 3
+#define PRINT_BUF_MULT 2000
 
 struct printBuf
 {

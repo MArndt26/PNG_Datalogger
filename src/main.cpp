@@ -31,14 +31,14 @@
 #define SERIAL_DELAY 1000000
 int stall_print = 0;
 
-#define SAMPLING_PERIOD 1000
+#define SAMPLING_PERIOD 500
 
 #ifdef SERIAL_DEBUG
 const int SERIAL_BUF_DISP = 5;
 const int PRINT_BUF_MULT = 5;
 #else
 const int SERIAL_BUF_DISP = 5;
-const int PRINT_BUF_MULT = 1000;
+const int PRINT_BUF_MULT = 2000;
 #endif
 
 void printPBuf(int offset, struct printBuf *buf);
@@ -65,7 +65,7 @@ volatile int print_overflow_flag = 0;
 
 const int ADC_CHAN = 10;
 
-const int MUXED_CHAN = 6;
+const int MUXED_CHAN = 3;
 
 const uint8_t adc_pins[] = {A0, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10};
 
