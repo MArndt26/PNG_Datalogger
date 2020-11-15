@@ -92,7 +92,7 @@ struct printBuf
 {
 	unsigned int time[PRINT_BUF_MULT];
 	uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
-} printBuf;
+};
 
 volatile int offset;
 
