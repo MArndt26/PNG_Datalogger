@@ -12,5 +12,7 @@ void mux_init()
         digitalWriteFast(mux_pins[i], LOW); //initialize to low
     }
 
-    Serial.println(PSTR("Mux Pins Initialized"));
+    Serial.print(PSTR("Mux Pins Initialized with ["));
+    Serial.print(MUXED_CHAN);
+    Serial.println(PSTR("] muxed channels"));
 }

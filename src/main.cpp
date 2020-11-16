@@ -37,6 +37,8 @@ void setup()
 
 	adc_init();
 
+	buf_init();
+
 	sd_init();
 }
 

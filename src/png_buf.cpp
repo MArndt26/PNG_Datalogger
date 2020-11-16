@@ -13,3 +13,10 @@ volatile int preOverflowBuffer = 0;
 
 volatile int offset;
 volatile int buf_overflow_offset = 0;
+
+void buf_init()
+{
+    Serial.print("Buffer Initialized with size [");
+    Serial.print(PRINT_BUF_MULT);
+    Serial.println("]");
+}

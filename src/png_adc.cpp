@@ -193,5 +193,10 @@ void adc_init()
     adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
     adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);     // change the sampling speed
 #endif
-    Serial.println(PSTR("ADC Initialized"));
+    Serial.print(PSTR("ADC Initialized with ["));
+    Serial.print(ADC_CHAN);
+    Serial.println(PSTR("] ADC channels"));
+    Serial.print(PSTR("Sampling at ["));
+    Serial.print(1e6 / SAMPLING_PERIOD);
+    Serial.println("] Hz");
 }

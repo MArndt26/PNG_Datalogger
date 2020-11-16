@@ -11,6 +11,8 @@
 #define PRINT_BUF_MULT 2000
 #endif
 
+void buf_init();
+
 struct printBuf
 {
     unsigned int time[PRINT_BUF_MULT];
