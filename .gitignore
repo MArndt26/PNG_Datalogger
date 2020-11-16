@@ -7,3 +7,4 @@ bin2csv/.vscode*
 *.bin
 a.out
 *.csv
+bin2csv/conversion
