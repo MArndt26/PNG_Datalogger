@@ -8,6 +8,93 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 - differential amplifier / wheatstone bridge to convert the sensor resistance changes into changes in voltage.
 - SD card to record the data
 
+# Testing SOP
+
+## Development tools
+
+- Download [Arduino IDE](https://www.arduino.cc/en/software)
+- Download [Teensyduino](https://www.pjrc.com/teensy/td_download.html) add on to Arduino
+- Download [Visual Studio Code](https://code.visualstudio.com/download) (VS code)
+- Open VS code and click on the Extensions button on left nav bar (Ctrl+Shift+X)
+- Search for PlatformIO IDE and install
+- use [git bash](https://git-scm.com/downloads) or [wsl](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to pull from this repository to your local machine
+  - see [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/cloning-a-repository) for how to do this
+
+## Updating Codebase/General Testing Set up
+
+use this step before running any new tests to get the most up-to-date code from the repository
+
+- use <b>git</b> to perform a pull on the repository
+  - see [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/using-git/getting-changes-from-a-remote-repository) for how to do this
+- Press the upload button in the bottom of VS code
+  - this looks like a right arrow ->
+
+## Teensy Serial Interaction
+
+make sure to update the codebase before you start new day of testing!
+
+- open a serial terminal connection
+  - I recommend using [CoolTerm](https://freeware.the-meiers.org/) for its easy to use interface
+- Once you initialize a connection with the Teensy you should see a serial welcome message from the Teensy
+  - if you don't see this, check that you have the correct COM port selected for the board in the serial terminal settings
+  - note that the serial settings are:
+    - baud rate: 9600
+    - data bits: 8
+    - parity: none
+    - stop bits: 1
+- Once you have established a connection use the following commands for the board (<b>note that all commands are single characters, not a character and then a newline</b>):
+  - 'c': create file
+    - creates data output file and loads into ready state
+  - 's': start data collection
+    - after a file is created/loaded, this will begin the data collection
+  - 'h': halt data collection
+    - following a start command, this will halt data collection and close the file. The teensy then returns to an idle state.
+
+### Example Operation:
+
+`c` (after press wait to see what file is created. Teensy board should have a blinking LED to indicate it is ready to start data collection)
+
+`s` (after press no serial will display but the LED will now be blinking very fast, will be percieved as a dim on)
+
+`h` (after press a closing message will be displayed and indication of any errors in the data collection will be presented)
+
+## Post Processing the Data
+
+for this step, you will need access to command line c tools such as <b>make</b> and <b>gcc</b>
+
+- copy the data from the SD card into the `/bin2csv` folder in this repository (local)
+- run the following command: `make test args=F1`
+  - Make sure to change F1 to be the name of the file that was created (don't include the .bin)
+  - Make sure that you have navigated into the bin2cvs folder when you run `make` as this will not work from the top level folder
+
+### Post Processing Options
+
+At the top of `conversion.c` in the `/bin2csv` folder there are several post processing options to chose:
+
+```c
+#define CREATE_INT_FILE
+#define CREATE_VOLTAGE_FILE
+
+//Meta Data
+#define TRACK_EXTREME_DT
+#define REMOVE_ZERO_DATA
+```
+
+commenting/uncommenting these lines before running the `make test` command will result in different operation.
+
+| Option              | Description                                                           |
+| ------------------- | --------------------------------------------------------------------- |
+| CREATE_INT_FILE     | generates integer data output file (0-4095)                           |
+| CREATE_VOLTAGE_FILE | generates floating point data output file (0-3.3)                     |
+| TRACK_EXTREME_DT    | terminal output will display min/max delta T for data                 |
+| REMOVE_ZERO_DATA    | removes all data will time (t) value of zero (garbage data in buffer) |
+
+### Additional Make Commands
+
+`make clean` removes all .csv files and executables in `/bin2csv` directory
+
+`make veryclean` removes all .csv , executables, <b>and .bin</b> files in `/bin2csv` directory
+
 # Current State
 
 updated 10/18/2020

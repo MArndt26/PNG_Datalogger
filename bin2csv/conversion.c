@@ -5,7 +5,7 @@
 #include <limits.h>
 
 #define CREATE_INT_FILE
-// #define CREATE_VOLTAGE_FILE
+#define CREATE_VOLTAGE_FILE
 
 //Meta Data
 #define TRACK_EXTREME_DT
