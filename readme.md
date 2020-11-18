@@ -8,6 +8,10 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 - differential amplifier / wheatstone bridge to convert the sensor resistance changes into changes in voltage.
 - SD card to record the data
 
+# Dataflow
+
+<div style="text-align:center"><img src="docs/final/dataflow.svg" /></div>
+
 # Testing SOP
 
 ## Development tools
