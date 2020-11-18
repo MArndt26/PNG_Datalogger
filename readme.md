@@ -10,7 +10,9 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 
 # Dataflow
 
-<div style="text-align:center"><img src="docs/final/dataflow.svg" /></div>
+<div align="center" style="text-align:center">
+  <img src="docs/final/dataflow.svg" />
+</div>
 
 # Testing SOP
 
