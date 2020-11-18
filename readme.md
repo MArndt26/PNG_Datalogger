@@ -26,6 +26,14 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 - use [git bash](https://git-scm.com/downloads) or [wsl](https://docs.microsoft.com/en-us/windows/wsl/install-win10) to pull from this repository to your local machine
   - see [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/cloning-a-repository) for how to do this
 
+### Optional for Post Processing Data
+
+- download [wsl](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+- open the wsl command line and download <b>make</b> and <b>gcc</b>
+  - run the following commands:
+    - sudo apt-get install make
+    - sudo apt-get install gcc
+
 ## Updating Codebase/General Testing Set up
 
 use this step before running any new tests to get the most up-to-date code from the repository
