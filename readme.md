@@ -32,6 +32,11 @@ use this step before running any new tests to get the most up-to-date code from 
 
 - use <b>git</b> to perform a pull on the repository
   - see [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/using-git/getting-changes-from-a-remote-repository) for how to do this
+  - run the following commands:
+    - git reset
+      - this will clear any local changes you may have mistakenly made to the repository
+    - git pull origin
+      - this loads new code into your local machine
 - Press the upload button in the bottom of VS code
   - this looks like a right arrow ->
 
