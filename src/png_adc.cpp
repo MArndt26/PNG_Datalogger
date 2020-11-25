@@ -12,7 +12,7 @@ ADC *adc = new ADC();
 void adc_isr()
 {
     digitalToggleFast(LED_BUILTIN);
-    digitalToggleFast(SYNC_PIN);
+    digitalToggleFast(SYNC_OUT_PIN);
 
     if (rBuf == wBuf)
     {
