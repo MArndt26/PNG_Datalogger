@@ -236,7 +236,10 @@ void loop()
 
 		debug("offset: ", offset);
 
-		dataFile.write((const uint8_t *)rBuf, sizeof(printBuf)); //write out rest of read buffer
+		//TODO: need to fix this so that you write out rest of buffered data
+		//		the issue now is that you could be forgetting to write data in overflow buffer
+
+		// dataFile.write((const uint8_t *)rBuf, sizeof(printBuf)); //write out rest of read buffer
 
 		numWrites++;
 

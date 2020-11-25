@@ -4,6 +4,7 @@
 #include "png_adc.h"
 #include "png_mux.h"
 #include "png_states.h"
+#include "png_sync.h"
 
 int stall_print = 0;
 
@@ -125,6 +126,8 @@ void debugAll(const char *msg)
     debugFormat("print overflow:", print_overflow_flag);
     debugFormat("offset:", offset);
     debugFormat("overflow offset:", buf_overflow_offset);
+    debugFormat("sync count:", sync_count);
+    debugFormat("sync stage count:", sync_stage_count);
     printBufInfo();
     Serial.println();
 }

@@ -12,7 +12,20 @@ ADC *adc = new ADC();
 void adc_isr()
 {
     digitalToggleFast(LED_BUILTIN);
-    digitalToggleFast(SYNC_OUT_PIN);
+
+    sync_count++;
+    if (sync_stage_count < sync_stage_count_switch) {
+        if (sync_count >= sync_pulse_period) {
+            digitalToggleFast(SYNC_OUT_PIN);
+            sync_count = 0;
+            sync_stage_count++;
+        }
+    } else {
+        if (sync_count >= sync_wait_period) {
+            sync_stage_count = 0;
+            sync_count = 0;
+        }
+    }
 
     if (rBuf == wBuf)
     {
@@ -81,6 +94,8 @@ void adc_isr()
         {
             rBuf->data[*off][ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
         }
+        //read in sync adc channel
+        rBuf->sync[*off] = adc->analogRead(SYNC_IN_PIN);
     }
 
     rBuf->time[*off] = time;

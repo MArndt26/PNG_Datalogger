@@ -35,6 +35,7 @@ struct printBuf
 {
     unsigned int time[PRINT_BUF_MULT];
     uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
+    uint16_t sync[PRINT_BUF_MULT];
 } printBuf;
 
 int main(int argc, char *argv[])
@@ -98,10 +99,12 @@ int main(int argc, char *argv[])
 #ifdef CREATE_VOLTAGE_FILE
             fprintf(outFilePtr, "%10s, ", "time (us)");
             fprintf(outFilePtr, "%10s, ", "dt (us)");
+            fprintf(outFilePtr, "%10s, ", "sync");
 #endif
 #ifdef CREATE_INT_FILE
             fprintf(intOutFilePtr, "%10s, ", "time (us)");
             fprintf(intOutFilePtr, "%10s, ", "dt (us)");
+            fprintf(intOutFilePtr, "%10s, ", "sync");
 #endif
         }
 #ifdef CREATE_VOLTAGE_FILE
@@ -164,6 +167,7 @@ int main(int argc, char *argv[])
 #endif
                 fprintf(intOutFilePtr, "%10u, ", curTime);
                 fprintf(intOutFilePtr, "%10d, ", deltaT);
+                fprintf(intOutFilePtr, "%10d, ", pBuf.sync[i]);
                 for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
@@ -174,6 +178,7 @@ int main(int argc, char *argv[])
 #ifdef CREATE_VOLTAGE_FILE
                 fprintf(outFilePtr, "%10u, ", curTime);
                 fprintf(outFilePtr, "%10d, ", deltaT);
+                fprintf(outFilePtr, "%10d, ", pBuf.sync[i]);
                 for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
                 {
                     float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
