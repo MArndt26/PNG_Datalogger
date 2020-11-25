@@ -3,7 +3,11 @@
 
 #include "Arduino.h"
 
+// uncomment for serial debugging mode at 1Hz
 // #define SERIAL_DEBUG
+
+// uncomment for extra adc channel to be used for sync signal input
+#define SYNC_CHAN
 
 extern volatile int print_ready_flag;
 extern volatile int sd_print_comp_flag;
