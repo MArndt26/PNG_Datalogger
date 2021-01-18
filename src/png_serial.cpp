@@ -219,5 +219,7 @@ void serial_init()
     Serial.begin(9600);
     while (!Serial)
         ; // wait for serial port to connect.
+    Serial.print("Build Date/Time: ");
+    Serial.println(PSTR(__TIMESTAMP__));
     Serial.println(PSTR("Serial Connected"));
 }
