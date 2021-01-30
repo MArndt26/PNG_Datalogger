@@ -190,10 +190,11 @@ void adc_isr()
 
 void adc_init()
 {
-    for (int i = 0; i < ADC_CHAN; i++)
-    {
-        pinMode(adc_pins[i], INPUT);
-    }
+    // don't want to use pinmode as it will set up as digital pin
+    // for (int i = 0; i < ADC_CHAN; i++)
+    // {
+    //     pinMode(adc_pins[i], INPUT);
+    // }
 
     ///// ADC0 ////
     adc->adc0->setAveraging(1);                                           // set number of averages
