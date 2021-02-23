@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 // uncomment for serial debugging mode at 1Hz
-#define SERIAL_DEBUG
+// #define SERIAL_DEBUG
 
 // uncomment for extra adc channel to be used for sync signal input
 #define SYNC_CHAN
