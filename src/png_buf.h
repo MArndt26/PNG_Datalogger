@@ -8,30 +8,24 @@
 #ifdef SERIAL_DEBUG
 #define PRINT_BUF_MULT 5
 #else
-#define PRINT_BUF_MULT 2000
+#define PRINT_BUF_MULT 6000
 #endif
 
 void buf_init();
+void buf_clear();
 
-struct printBuf
+struct printLine
 {
-    unsigned int time[PRINT_BUF_MULT];
-    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
-    uint16_t sync[PRINT_BUF_MULT];
+    unsigned int time;
+    uint16_t data[ADC_CHAN * MUXED_CHAN];
+    uint16_t sync;
 };
 
-extern struct printBuf pB1;
-extern struct printBuf pB2;
-extern struct printBuf pBOver;
+extern struct printLine cBuf[PRINT_BUF_MULT];
 
-extern struct printBuf *wBuf;
-extern struct printBuf *rBuf;
+extern volatile int cBufWriteIdx;
+extern volatile int cBufReadIdx;
 
-#define PRINTBUF_INIT(X) struct printBuf X = {0}
-
-extern volatile int preOverflowBuffer;
-
-extern volatile int offset;
-extern volatile int buf_overflow_offset;
+extern volatile int printIdle;
 
 #endif

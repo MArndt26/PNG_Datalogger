@@ -17,9 +17,7 @@ void debugAll(const char *msg);
 
 void debugFormat(const char *msg, int val);
 
-void printBufInfo();
-
-void printPBuf(int offset, struct printBuf *buf);
+void printCBuf(struct printLine *buf);
 
 void printBuffer(const char *name, struct printBuf *buf);
 

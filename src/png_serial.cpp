@@ -8,31 +8,26 @@
 
 int stall_print = 0;
 
-void printPBuf(int offset, struct printBuf *buf)
+void printCBuf(struct printLine *buf)
 {
-    debug(PSTR("print offset: "), offset);
+    Serial.print(buf->time);
 
-    for (int j = offset; j < offset + SERIAL_BUF_DISP; j++)
+    int d = countDigits(buf->time);
+
+    while (d < 15)
     {
-        Serial.print(buf->time[j]);
+        Serial.print(PSTR(" "));
+        d++;
+    }
 
-        int d = countDigits(buf->time[j]);
-
-        while (d < 15)
-        {
-            Serial.print(PSTR(" "));
-            d++;
-        }
+    Serial.print(',');
+    for (int i = 0; i < ADC_CHAN; i++)
+    {
+        Serial.print(buf->data[i]);
 
         Serial.print(',');
-        for (int i = 0; i < ADC_CHAN * MUXED_CHAN; i++)
-        {
-            Serial.print(buf->data[j][i]);
-
-            Serial.print(',');
-        }
-        Serial.println();
     }
+    Serial.println();
 }
 
 void error(const char *msg)
@@ -43,78 +38,13 @@ void error(const char *msg)
 
     debug("numWrites: ", numWrites);
 
-    debug("offset: ", offset);
+    debug("Write Offset: ", cBufWriteIdx);
 
-    debug("overflow offset: ", buf_overflow_offset);
+    debug("Read Offset: ", cBufReadIdx);
 
     while (1)
     {
         blink(1, 200);
-    }
-}
-
-void printBufInfo()
-{
-    printBuffer("rBuf: ", rBuf);
-    printBuffer("wBuf: ", wBuf);
-}
-
-void printBuffer(const char *name, struct printBuf *buf)
-{
-    Serial.print(name);
-
-    int n = getBufNum(buf);
-    switch (n)
-    {
-    case 1:
-    {
-        Serial.println("pB1");
-        break;
-    }
-    case 2:
-    {
-        Serial.println("pB2");
-        break;
-    }
-    case 3:
-    {
-        Serial.println("pBOver");
-        break;
-    }
-    case 4:
-    {
-        Serial.println("nullptr");
-        break;
-    }
-    default:
-    {
-        Serial.println("invalid buffer");
-        break;
-    }
-    }
-}
-
-int getBufNum(struct printBuf *buf)
-{
-    if (buf == &pB1)
-    {
-        return 1;
-    }
-    else if (buf == &pB2)
-    {
-        return 2;
-    }
-    else if (buf == &pBOver)
-    {
-        return 3;
-    }
-    else if (buf == nullptr)
-    {
-        return 4;
-    }
-    else
-    {
-        return -1;
     }
 }
 
@@ -124,11 +54,10 @@ void debugAll(const char *msg)
     debugFormat("stall print:", stall_print);
     debugFormat("print ready:", print_ready_flag);
     debugFormat("print overflow:", print_overflow_flag);
-    debugFormat("offset:", offset);
-    debugFormat("overflow offset:", buf_overflow_offset);
+    debugFormat("Write Offset: ", cBufWriteIdx);
+    debugFormat("Read Offset: ", cBufReadIdx);
     debugFormat("sync count:", sync_count);
     debugFormat("sync stage count:", sync_stage_count);
-    printBufInfo();
     Serial.println();
 }
 
