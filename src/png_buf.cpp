@@ -5,9 +5,21 @@ circBuf cBuf;
 
 void buf_init()
 {
-    Serial.print("Buffer Initialized with size [");
-    Serial.print(PRINT_BUF_MULT);
+    Serial.print("Buffer Initialized as [");
+    Serial.print(CIRC_BUFF_SIZE);
+    Serial.print("] print buffers with [");
+    Serial.print(NUM_PRINT_LINES);
+    Serial.print("] lines of size [");
+    Serial.print(sizeof(printBuf));
     Serial.println("]");
+
+    Serial.print("sizeof(printBuf) = ");
+    Serial.println(sizeof(printBuf));
+    Serial.print("sizeof(printLine) = ");
+    Serial.println(sizeof(printLine));
+    Serial.print("sizeof(circBuf) = ");
+    Serial.println(sizeof(circBuf));
+
 
     buf_clear();
 }
@@ -17,11 +29,11 @@ void buf_clear()
     cBuf.rh = 0;
     cBuf.wh = 0;
 
-    for (int i = 0; i < PRINT_BUF_SIZE; i++)
+    for (int i = 0; i < CIRC_BUFF_SIZE; i++)
     {
         cBuf.printReady[i] = 0;
 
-        for (int j = 0; j < PRINT_BUF_MULT; j++)
+        for (int j = 0; j < NUM_PRINT_LINES; j++)
         {
             cBuf.pb[i].line[j].time = 0;    //clear time to signal invalid data
         }
@@ -42,7 +54,7 @@ void nextwrite()
 {
     cBuf.printReady[cBuf.wh] = 0;
     cBuf.wh++;
-    if (cBuf.wh >= PRINT_BUF_SIZE)
+    if (cBuf.wh >= NUM_PRINT_LINES)
     {
         //overflow case
         cBuf.wh = 0;
@@ -71,7 +83,7 @@ bool next_line()
 {
     //increment print line index
     lineIdx++;   
-    if (lineIdx >= PRINT_BUF_MULT)
+    if (lineIdx >= NUM_PRINT_LINES)
     {
         //reset line index
         lineIdx = 0;
@@ -80,7 +92,7 @@ bool next_line()
         // increment read head
         cBuf.rh++;
 
-        if (cBuf.rh >= PRINT_BUF_SIZE)
+        if (cBuf.rh >= CIRC_BUFF_SIZE)
         {
             //overflow case
             cBuf.rh = 0;
@@ -93,7 +105,7 @@ bool next_line()
             if (cBuf.rh < 0) 
             {
                 //overwrite occured at 0 corner case
-                cBuf.rh = PRINT_BUF_SIZE - 1;
+                cBuf.rh = CIRC_BUFF_SIZE - 1;
             }
             return false;
         }

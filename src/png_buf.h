@@ -5,13 +5,8 @@
 #include "png_adc.h"
 #include "png_mux.h"
 
-// #ifdef SERIAL_DEBUG
-// #define PRINT_BUF_MULT 5
-// #else
-// #endif
-
-#define PRINT_BUF_MULT 2
-#define PRINT_BUF_SIZE 10
+#define NUM_PRINT_LINES 7
+#define CIRC_BUFF_SIZE 800
 
 void buf_init();
 void buf_clear();
@@ -33,15 +28,15 @@ typedef struct printLine
 
 typedef struct printBuf
 {
-    printLine line[PRINT_BUF_MULT];
+    printLine line[NUM_PRINT_LINES];
 } printBuf;
 
 extern int lineIdx;  //make sure to init to 0
 
 typedef struct circBuf
 {
-    printBuf pb[PRINT_BUF_SIZE];
-    bool printReady[PRINT_BUF_SIZE];
+    printBuf pb[CIRC_BUFF_SIZE];
+    bool printReady[CIRC_BUFF_SIZE];
     int wh; //write head (print)
     int rh; //read head (adc read)
 } circBuf;
