@@ -101,11 +101,12 @@ inline void next_line()
             //overflow case
             cBuf.rh = 0;
         }
-
+#ifdef MAKE_ERRORS_FATAL
         if (cBuf.wh == cBuf.rh) 
         {
             error("cBuf overwrite");
         }
+#endif
     }
 }
 

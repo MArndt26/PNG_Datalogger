@@ -5,11 +5,11 @@
 #include <limits.h>
 
 #define CREATE_INT_FILE
-// #define CREATE_VOLTAGE_FILE
+#define CREATE_VOLTAGE_FILE
 
 //Meta Data
 #define TRACK_EXTREME_DT
-// #define REMOVE_ZERO_DATA
+#define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
@@ -29,7 +29,6 @@
 
 #define ADC_CHAN 10
 #define MUXED_CHAN 3
-// #define NUM_PRINT_LINES 15
 
 typedef struct printLine
 {
@@ -37,11 +36,6 @@ typedef struct printLine
     uint16_t data[ADC_CHAN * MUXED_CHAN];
     uint16_t sync;
 } printLine;
-
-// typedef struct printBuf
-// {
-//     printLine line[NUM_PRINT_LINES];
-// } printBuf;
 
 int main(int argc, char *argv[])
 {
@@ -182,10 +176,10 @@ int main(int argc, char *argv[])
 #ifdef CREATE_VOLTAGE_FILE
             fprintf(outFilePtr, "%10u, ", curTime);
             fprintf(outFilePtr, "%10d, ", deltaT);
-            fprintf(outFilePtr, "%10d, ", pBuf.sync[i]);
+            fprintf(outFilePtr, "%10d, ", pLine.sync);
             for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
             {
-                float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
+                float voltage = pLine.data[j] / max_val * voltageRef; //calculate voltage
                 fprintf(outFilePtr, "%4.6f, ", voltage);
             }
             fprintf(outFilePtr, "\n");

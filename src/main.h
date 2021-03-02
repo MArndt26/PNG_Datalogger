@@ -22,4 +22,6 @@ extern elapsedMicros time;
 
 extern unsigned int adcTime;
 
+#define MAKE_ERRORS_FATAL
+
 #endif
