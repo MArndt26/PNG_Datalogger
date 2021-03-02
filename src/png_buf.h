@@ -15,11 +15,14 @@
 
 void buf_init();
 void buf_clear();
-inline bool writeReady();
-inline uint8_t* write();
-inline void nextwrite();
-inline void fill_data(int i, uint16_t value);
-inline bool next_line();
+bool writeReady();
+uint8_t* write();
+void nextwrite();
+void fill_data(int i, uint16_t value);
+bool next_line();
+void fill_sync(uint16_t value);
+void fill_time(unsigned int value);
+
 
 typedef struct printLine
 {
@@ -33,7 +36,7 @@ typedef struct printBuf
     printLine line[PRINT_BUF_MULT];
 } printBuf;
 
-int lineIdx;  //make sure to init to 0
+extern int lineIdx;  //make sure to init to 0
 
 typedef struct circBuf
 {
@@ -43,6 +46,6 @@ typedef struct circBuf
     int rh; //read head (adc read)
 } circBuf;
 
-circBuf cBuf;
+extern circBuf cBuf;
 
 #endif

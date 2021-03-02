@@ -27,18 +27,18 @@ void adc_isr()
         }
     }
 
-    if (cBufWriteIdx == cBufReadIdx)  
-    {
-        numErrors++;
-        cBufReadIdx--;
-        // debug("Num Writes: ", numWrites);   // right now overrun causes terminal error
-        // error(PSTR("Buffer Overrun Error!"));
-    }
+    // if (cBufWriteIdx == cBufReadIdx)  
+    // {
+    //     numErrors++;
+    //     cBufReadIdx--;
+    //     // debug("Num Writes: ", numWrites);   // right now overrun causes terminal error
+    //     // error(PSTR("Buffer Overrun Error!"));
+    // }
 
-    if (cBufReadIdx >= PRINT_BUF_MULT)
-    {
-        error(PSTR("offset too large"));
-    }
+    // if (cBufReadIdx >= PRINT_BUF_MULT)
+    // {
+    //     error(PSTR("offset too large"));
+    // }
 
     for (int j = 0; j < MUXED_CHAN; j++)
     {
@@ -88,34 +88,15 @@ void adc_isr()
         //read in adc channels
         for (int i = 0; i < ADC_CHAN; i++)
         {
-            cBuf[cBufReadIdx].data[ADC_CHAN * j + i] = adc->analogRead(adc_pins[i]);
+            fill_data(ADC_CHAN * j + i, adc->analogRead(adc_pins[i]) );
         }
         //read in sync adc channel
-        cBuf[cBufReadIdx].sync = adc->analogRead(SYNC_IN_PIN);
+        fill_sync(adc->analogRead(SYNC_IN_PIN));
     }
 
-    cBuf[cBufReadIdx].time = time;
+    fill_time(time);
 
-    // #ifdef SERIAL_DEBUG 
-    // printCBuf(cBuf + cBufReadIdx);
-    // #endif
-
-    (cBufReadIdx)++;
-    if (cBufReadIdx >= PRINT_BUF_MULT) 
-    {
-        cBufReadIdx = 0; //rollover read buffer
-    }
-
-    if (printIdle)
-    {
-        //write is ready
-        cBufWriteIdx++;
-        if (cBufWriteIdx >= PRINT_BUF_MULT)
-        {
-            cBufWriteIdx = 0;  // rollover write buffer
-        }
-        print_ready_flag = 1;
-    } // else print is busy
+    next_line();
 
 #ifdef SERIAL_DEBUG
     debugAll("end of adc_isr");

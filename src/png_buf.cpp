@@ -1,12 +1,7 @@
 #include "png_buf.h"
 
-struct printBuf cBuf[PRINT_BUF_SIZE];
-
-volatile int cBufWriteIdx;
-volatile int cBufReadIdx;
-
-volatile int printIdle;
-
+int lineIdx = 0;  //make sure to init to 0
+circBuf cBuf;
 
 void buf_init()
 {
@@ -33,17 +28,17 @@ void buf_clear()
     }
 }
 
-inline bool writeReady()
+bool writeReady()
 {
     return cBuf.printReady[cBuf.wh];
 }
 
-inline uint8_t* write()
+uint8_t* write()
 {
     return (uint8_t*) &cBuf.pb[cBuf.wh];
 }
 
-inline void nextwrite()
+void nextwrite()
 {
     cBuf.printReady[cBuf.wh] = 0;
     cBuf.wh++;
@@ -54,13 +49,25 @@ inline void nextwrite()
     }
 }
 
-inline void fill_data(int i, uint16_t value)
+void fill_data(int i, uint16_t value)
 {
     //read adc value to data at index i
     cBuf.pb[cBuf.rh].line[lineIdx].data[i] = value;
 }
 
-inline bool next_line() 
+void fill_sync(uint16_t value)
+{
+    //read adc value to sync
+    cBuf.pb[cBuf.rh].line[lineIdx].sync = value;
+}
+
+void fill_time(unsigned int value)
+{
+    //read adc value to time
+    cBuf.pb[cBuf.rh].line[lineIdx].time = value;
+}
+
+bool next_line() 
 {
     //increment print line index
     lineIdx++;   
@@ -69,7 +76,7 @@ inline bool next_line()
         //reset line index
         lineIdx = 0;
         // set line pb print ready
-        cBuf.printReady[cBuf.rh];
+        cBuf.printReady[cBuf.rh] = 1;
         // increment read head
         cBuf.rh++;
 

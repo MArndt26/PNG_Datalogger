@@ -114,13 +114,11 @@ void loop()
 	}
 	case WRITE:
 	{
-		if (print_ready_flag)
+		if (writeReady())
 		{
 			digitalToggleFast(LED_BUILTIN);
 
-			printIdle = 0; 
-
-			dataFile.write((const uint8_t *)(cBuf + cBufWriteIdx), sizeof(struct printLine));
+			dataFile.write(write(), sizeof(struct printBuf));
 
 			#ifdef SERIAL_DEBUG 
 			printCBuf(cBuf + cBufWriteIdx);
@@ -128,8 +126,10 @@ void loop()
 
 			numWrites++;
 
-			print_ready_flag = 0;  //reset print ready flag to allow cBufWriteIdx update
-			printIdle = 1;
+			// print_ready_flag = 0;  //reset print ready flag to allow cBufWriteIdx update
+			// printIdle = 1;
+
+			nextwrite();
 		}
 		break;
 	}

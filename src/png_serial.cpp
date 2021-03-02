@@ -38,9 +38,9 @@ void error(const char *msg)
 
     debug("numWrites: ", numWrites);
 
-    debug("Write Offset: ", cBufWriteIdx);
+    debug("Write Offset: ", cBuf.wh);
 
-    debug("Read Offset: ", cBufReadIdx);
+    debug("Read Offset: ", cBuf.rh);
 
     while (1)
     {
@@ -54,8 +54,8 @@ void debugAll(const char *msg)
     debugFormat("stall print:", stall_print);
     debugFormat("print ready:", print_ready_flag);
     debugFormat("print overflow:", print_overflow_flag);
-    debugFormat("Write Offset: ", cBufWriteIdx);
-    debugFormat("Read Offset: ", cBufReadIdx);
+    debugFormat("Write Offset: ", cBuf.wh);
+    debugFormat("Read Offset: ", cBuf.rh);
     debugFormat("sync count:", sync_count);
     debugFormat("sync stage count:", sync_stage_count);
     Serial.println();
