@@ -27,18 +27,11 @@ void adc_isr()
         }
     }
 
-    // if (cBufWriteIdx == cBufReadIdx)  
-    // {
-    //     numErrors++;
-    //     cBufReadIdx--;
-    //     // debug("Num Writes: ", numWrites);   // right now overrun causes terminal error
-    //     // error(PSTR("Buffer Overrun Error!"));
-    // }
-
-    // if (cBufReadIdx >= PRINT_BUF_MULT)
-    // {
-    //     error(PSTR("offset too large"));
-    // }
+    if (bufferOverun()) {
+        //skip measurement to save time
+        numErrors++;
+        return;
+    }
 
     for (int j = 0; j < MUXED_CHAN; j++)
     {

@@ -26,8 +26,13 @@ void buf_init()
 
 void buf_clear() 
 {
+    // reset read/write heads
     cBuf.rh = 0;
     cBuf.wh = 0;
+
+    // reset tracking stats
+    numWrites = 0;
+    numErrors = 0;
 
     for (int i = 0; i < CIRC_BUFF_SIZE; i++)
     {

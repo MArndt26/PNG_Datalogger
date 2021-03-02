@@ -4,11 +4,10 @@
 #include "main.h"
 #include "png_adc.h"
 #include "png_mux.h"
+#include "png_serial.h"
 
-#define NUM_PRINT_LINES 7
-#define CIRC_BUFF_SIZE 800
-
-
+#define NUM_PRINT_LINES 15
+#define CIRC_BUFF_SIZE 400
 
 typedef struct printLine
 {
@@ -49,7 +48,7 @@ inline void nextwrite()
 {
     cBuf.printReady[cBuf.wh] = 0;
     cBuf.wh++;
-    if (cBuf.wh >= NUM_PRINT_LINES)
+    if (cBuf.wh >= CIRC_BUFF_SIZE)
     {
         //overflow case
         cBuf.wh = 0;
@@ -79,7 +78,12 @@ inline void fill_time(unsigned int value)
     cBuf.pb[cBuf.rh].line[lineIdx].time = value;
 }
 
-inline bool next_line() 
+inline bool bufferOverun()
+{
+    return (cBuf.rh == cBuf.wh && cBuf.printReady[cBuf.wh]);
+}
+
+inline void next_line() 
 {
     //increment print line index
     lineIdx++;   
@@ -98,20 +102,11 @@ inline bool next_line()
             cBuf.rh = 0;
         }
 
-        if (cBuf.rh == cBuf.wh) {
-            // overwrite case
-            // decrement rh to stall
-            cBuf.rh--;
-            numErrors++;
-            if (cBuf.rh < 0) 
-            {
-                //overwrite occured at 0 corner case
-                cBuf.rh = CIRC_BUFF_SIZE - 1;
-            }
-            return false;
+        if (cBuf.wh == cBuf.rh) 
+        {
+            error("cBuf overwrite");
         }
     }
-    return true;
 }
 
 #endif
