@@ -5,11 +5,11 @@
 #include <limits.h>
 
 #define CREATE_INT_FILE
-#define CREATE_VOLTAGE_FILE
+// #define CREATE_VOLTAGE_FILE
 
 //Meta Data
 #define TRACK_EXTREME_DT
-#define REMOVE_ZERO_DATA
+// #define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
@@ -29,14 +29,19 @@
 
 #define ADC_CHAN 10
 #define MUXED_CHAN 3
-#define PRINT_BUF_MULT 2000
+// #define NUM_PRINT_LINES 15
 
-struct printBuf
+typedef struct printLine
 {
-    unsigned int time[PRINT_BUF_MULT];
-    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
-    uint16_t sync[PRINT_BUF_MULT];
-} printBuf;
+    unsigned int time;
+    uint16_t data[ADC_CHAN * MUXED_CHAN];
+    uint16_t sync;
+} printLine;
+
+// typedef struct printBuf
+// {
+//     printLine line[NUM_PRINT_LINES];
+// } printBuf;
 
 int main(int argc, char *argv[])
 {
@@ -123,7 +128,8 @@ int main(int argc, char *argv[])
     fprintf(intOutFilePtr, "\n"); //write integer
 #endif
 
-    struct printBuf pBuf;
+    // struct printBuf pBuf;
+    printLine pLine;
 #ifdef REMOVE_ZERO_DATA
     int numDeletes = 0;
 #endif
@@ -134,68 +140,65 @@ int main(int argc, char *argv[])
 
     int prevTime = 0;
 
-    while (fread(&pBuf, sizeof(struct printBuf), 1, inFilePtr))
+    while (fread(&pLine, sizeof(printLine), 1, inFilePtr))
     {
-        for (int i = 0; i < PRINT_BUF_MULT; i++)
-        {
-            int curTime = pBuf.time[i];
+        int curTime = pLine.time;
 
 #ifdef REMOVE_ZERO_DATA
-            if (curTime != 0)
-            {
+        if (curTime != 0)
+        {
 #endif
 
 #ifdef CREATE_INT_FILE
-                int deltaT = curTime - prevTime;
+            int deltaT = curTime - prevTime;
 #ifdef TRACK_EXTREME_DT
-                if (prevTime == 0)
+            if (prevTime == 0)
+            {
+                deltaT = -999; //flagged as invalid data for first delta
+            }
+            else //don't consider invalid data in meta
+            {
+                if (deltaT > maxDT)
                 {
-                    deltaT = -999; //flagged as invalid data for first delta
+                    maxDT = deltaT;
                 }
-                else //don't consider invalid data in meta
+                if (deltaT < minDT)
                 {
-                    if (deltaT > maxDT)
-                    {
-                        maxDT = deltaT;
-                    }
-                    if (deltaT < minDT)
-                    {
-                        minDT = deltaT;
-                    }
+                    minDT = deltaT;
                 }
+            }
 
 #endif
-                fprintf(intOutFilePtr, "%10u, ", curTime);
-                fprintf(intOutFilePtr, "%10d, ", deltaT);
-                fprintf(intOutFilePtr, "%10d, ", pBuf.sync[i]);
-                for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
-                {
-                    fprintf(intOutFilePtr, "%4d, ", pBuf.data[i][j]);
-                }
-                fprintf(intOutFilePtr, "\n");
+            fprintf(intOutFilePtr, "%10u, ", curTime);
+            fprintf(intOutFilePtr, "%10d, ", deltaT);
+            fprintf(intOutFilePtr, "%10d, ", pLine.sync);
+            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            {
+                fprintf(intOutFilePtr, "%4d, ", pLine.data[j]);
+            }
+            fprintf(intOutFilePtr, "\n");
 #endif
 
 #ifdef CREATE_VOLTAGE_FILE
-                fprintf(outFilePtr, "%10u, ", curTime);
-                fprintf(outFilePtr, "%10d, ", deltaT);
-                fprintf(outFilePtr, "%10d, ", pBuf.sync[i]);
-                for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
-                {
-                    float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
-                    fprintf(outFilePtr, "%4.6f, ", voltage);
-                }
-                fprintf(outFilePtr, "\n");
+            fprintf(outFilePtr, "%10u, ", curTime);
+            fprintf(outFilePtr, "%10d, ", deltaT);
+            fprintf(outFilePtr, "%10d, ", pBuf.sync[i]);
+            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
+            {
+                float voltage = pBuf.data[i][j] / max_val * voltageRef; //calculate voltage
+                fprintf(outFilePtr, "%4.6f, ", voltage);
+            }
+            fprintf(outFilePtr, "\n");
 #endif
 
-                prevTime = pBuf.time[i];
+            prevTime = pLine.time;
 #ifdef REMOVE_ZERO_DATA
-            }
-            else
-            {
-                numDeletes++;
-            }
-#endif
         }
+        else
+        {
+            numDeletes++;
+        }
+#endif
     }
 #ifdef REMOVE_ZERO_DATA
     printf("Number of rows deleted: %d\n", numDeletes);
