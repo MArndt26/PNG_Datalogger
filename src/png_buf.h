@@ -8,15 +8,6 @@
 #define NUM_PRINT_LINES 7
 #define CIRC_BUFF_SIZE 800
 
-void buf_init();
-void buf_clear();
-bool writeReady();
-uint8_t* write();
-void nextwrite();
-void fill_data(int i, uint16_t value);
-bool next_line();
-void fill_sync(uint16_t value);
-void fill_time(unsigned int value);
 
 
 typedef struct printLine
@@ -42,5 +33,85 @@ typedef struct circBuf
 } circBuf;
 
 extern circBuf cBuf;
+
+// Function Headers
+void buf_init();
+void buf_clear();
+uint8_t* write();
+
+// Inline functions
+inline bool writeReady()
+{
+    return cBuf.printReady[cBuf.wh];
+}
+
+inline void nextwrite()
+{
+    cBuf.printReady[cBuf.wh] = 0;
+    cBuf.wh++;
+    if (cBuf.wh >= NUM_PRINT_LINES)
+    {
+        //overflow case
+        cBuf.wh = 0;
+    }
+}
+
+inline uint8_t* write()
+{
+    return (uint8_t*) &cBuf.pb[cBuf.wh];
+}
+
+inline void fill_data(int i, uint16_t value)
+{
+    //read adc value to data at index i
+    cBuf.pb[cBuf.rh].line[lineIdx].data[i] = value;
+}
+
+inline void fill_sync(uint16_t value)
+{
+    //read adc value to sync
+    cBuf.pb[cBuf.rh].line[lineIdx].sync = value;
+}
+
+inline void fill_time(unsigned int value)
+{
+    //read adc value to time
+    cBuf.pb[cBuf.rh].line[lineIdx].time = value;
+}
+
+inline bool next_line() 
+{
+    //increment print line index
+    lineIdx++;   
+    if (lineIdx >= NUM_PRINT_LINES)
+    {
+        //reset line index
+        lineIdx = 0;
+        // set line pb print ready
+        cBuf.printReady[cBuf.rh] = 1;
+        // increment read head
+        cBuf.rh++;
+
+        if (cBuf.rh >= CIRC_BUFF_SIZE)
+        {
+            //overflow case
+            cBuf.rh = 0;
+        }
+
+        if (cBuf.rh == cBuf.wh) {
+            // overwrite case
+            // decrement rh to stall
+            cBuf.rh--;
+            numErrors++;
+            if (cBuf.rh < 0) 
+            {
+                //overwrite occured at 0 corner case
+                cBuf.rh = CIRC_BUFF_SIZE - 1;
+            }
+            return false;
+        }
+    }
+    return true;
+}
 
 #endif
