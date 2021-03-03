@@ -13,5 +13,6 @@ extern File dataFile;
 extern char fName[FILE_BUF_SIZE];
 
 void sd_init();
+void sd_wrap_up();
 
 #endif

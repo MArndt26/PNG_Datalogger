@@ -5,6 +5,7 @@
 #include "png_mux.h"
 #include "png_states.h"
 #include "png_sync.h"
+#include "png_sd.h"
 
 int stall_print = 0;
 
@@ -41,6 +42,10 @@ void error(const char *msg)
     debug("Write Offset: ", cBuf.wh);
 
     debug("Read Offset: ", cBuf.rh);
+
+    sd_wrap_up();
+
+    Serial.println("...Entering Endless Loop...");
 
     while (1)
     {

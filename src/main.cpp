@@ -23,6 +23,8 @@ int numErrors = 0;
 
 elapsedMicros time;
 
+unsigned int startTime;
+
 unsigned int adcTime;
 
 void setup()
@@ -109,6 +111,7 @@ void loop()
 #else
 		adcTimer.begin(adc_isr, SERIAL_DELAY);
 #endif
+		startTime = time;
 		logger_state = WRITE;
 		break;
 	}
@@ -118,16 +121,13 @@ void loop()
 		{
 			digitalToggleFast(LED_BUILTIN);
 
-			dataFile.write(write(), sizeof(struct printBuf));
+			dataFile.write(write(), sizeof(printBuf));
 
 			#ifdef SERIAL_DEBUG 
 			printCBuf(cBuf + cBufWriteIdx);
 			#endif
 
 			numWrites++;
-
-			// print_ready_flag = 0;  //reset print ready flag to allow cBufWriteIdx update
-			// printIdle = 1;
 
 			nextwrite();
 		}
@@ -137,38 +137,7 @@ void loop()
 	{
 		adcTimer.end();
 
-		Serial.println(PSTR("Halted Data Collection"));
-		Serial.println(PSTR("wrapping up file..."));
-
-		// int finalOffset = cBufWriteIdx;
-
-		// debug(PSTR("before: "), finalOffset);
-
-		// finalOffset -= SERIAL_BUF_DISP;
-
-		// if (finalOffset < 0)
-		// {
-		// 	finalOffset = 0;
-		// }
-		// debug(PSTR("finalOffset: "), finalOffset);
-
-		// Serial.println(PSTR("Flushing Write Buffer"));
-
-		// for (int i = offset; i < PRINT_BUF_MULT; i++)
-		// {
-		// 	rBuf->time[i] = 0; //zero fill rest of data
-		// }
-
-		// debug("offset: ", offset);
-
-		//TODO: need to fix this so that you write out rest of buffered data
-		//		the issue now is that you could be forgetting to write data in overflow buffer
-
-		// dataFile.write((const uint8_t *)rBuf, sizeof(printBuf)); //write out rest of read buffer
-
-		numWrites++;
-
-		dataFile.close();
+		sd_wrap_up();
 
 		debug("number of errors: ", numErrors);
 
