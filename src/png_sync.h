@@ -6,7 +6,7 @@
 #define SYNC_OUT_PIN 0
 
 #ifdef SYNC_CHAN
-    #define SYNC_IN_PIN A11
+    #define SYNC_IN_PIN A13
 #endif
 
 void sync_init();
