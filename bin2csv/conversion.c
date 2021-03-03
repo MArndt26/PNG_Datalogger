@@ -4,12 +4,12 @@
 #include <string.h>
 #include <limits.h>
 
-#define CREATE_INT_FILE
+// #define CREATE_INT_FILE
 #define CREATE_VOLTAGE_FILE
 
 //Meta Data
 #define TRACK_EXTREME_DT
-#define REMOVE_ZERO_DATA
+// #define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
  * 
@@ -142,9 +142,8 @@ int main(int argc, char *argv[])
         if (curTime != 0)
         {
 #endif
-
-#ifdef CREATE_INT_FILE
             int deltaT = curTime - prevTime;
+
 #ifdef TRACK_EXTREME_DT
             if (prevTime == 0)
             {
@@ -161,8 +160,9 @@ int main(int argc, char *argv[])
                     minDT = deltaT;
                 }
             }
-
 #endif
+
+#ifdef CREATE_INT_FILE
             fprintf(intOutFilePtr, "%10u, ", curTime);
             fprintf(intOutFilePtr, "%10d, ", deltaT);
             fprintf(intOutFilePtr, "%10d, ", pLine.sync);
