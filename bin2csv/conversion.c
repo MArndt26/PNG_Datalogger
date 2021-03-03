@@ -4,7 +4,7 @@
 #include <string.h>
 #include <limits.h>
 
-// #define CREATE_INT_FILE
+#define CREATE_INT_FILE
 #define CREATE_VOLTAGE_FILE
 
 //Meta Data
