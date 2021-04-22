@@ -1,9 +1,9 @@
 # Project Description
 
-Purdue Neurological Group (PNG) is involved in many different research projects, one of which involves measuring the effects of head trama in athletics. More specifically, football helmet collisions. The goal of the project in reguards to this repository is to design and implement high-speed data collection circuitry to measure the forces that take place during one of these football impacts (tackles). "Data collection circuitry" refers to the following:
+Purdue Neurological Group (PNG) is involved in many different research projects, one of which involves measuring the effects of head trauma in athletics. More specifically, football helmet collisions. The goal of the project in regards to this repository is to design and implement high-speed data collection circuitry to measure the forces that take place during one of these football impacts (tackles). "Data collection circuitry" refers to the following:
 
 - a microcontroller to read in analog inputs through an ADC
-- variable resistance strain guages to measure forces
+- variable resistance strain gauges to measure forces
 - analog multiplexers to route 6 different signals into the microcontroller
 - differential amplifier / wheatstone bridge to convert the sensor resistance changes into changes in voltage.
 - SD card to record the data
@@ -28,11 +28,12 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 
 ### Optional for Post Processing Data
 
-- download [wsl](https://docs.microsoft.com/en-us/windows/wsl/install-win10)
+To run the post processing script to convert the binary data into .csv files you will need access to GNU Make from the command line. If you are on a Windows machine, you can download wsl [here](https://docs.microsoft.com/en-us/windows/wsl/) for bash command line ability.
+
 - open the wsl command line and download <b>make</b> and <b>gcc</b>
-  - run the following commands:
-    - sudo apt-get install make
-    - sudo apt-get install gcc
+- run the following commands:
+  - sudo apt-get install make
+  - sudo apt-get install gcc
 
 ## Updating Codebase/General Testing Set up
 
@@ -41,16 +42,20 @@ use this step before running any new tests to get the most up-to-date code from 
 - use <b>git</b> to perform a pull on the repository
   - see [GitHub documentation](https://docs.github.com/en/free-pro-team@latest/github/using-git/getting-changes-from-a-remote-repository) for how to do this
   - run the following commands:
-    - git reset
+    - git reset --hard HEAD
       - this will clear any local changes you may have mistakenly made to the repository
     - git pull origin
       - this loads new code into your local machine
 - Press the upload button in the bottom of VS code
-  - this looks like a right arrow ->
+  - this looks like a right arrow -> (see below)
+
+<div align="center" style="text-align:center">
+  <img src="docs/resources/PlatformIO_Upload.png" />
+</div>
 
 ## Teensy Serial Interaction
 
-make sure to update the codebase before you start new day of testing!
+make sure to update the codebase before you start a new day of testing!
 
 - open a serial terminal connection
   - I recommend using [CoolTerm](https://freeware.the-meiers.org/) for its easy to use interface
@@ -73,7 +78,7 @@ make sure to update the codebase before you start new day of testing!
 
 `c` (after press wait to see what file is created. Teensy board should have a blinking LED to indicate it is ready to start data collection)
 
-`s` (after press no serial will display but the LED will now be blinking very fast, will be percieved as a dim on)
+`s` (after press no serial will display but the LED will now be blinking very fast, will be perceived as a dim on)
 
 `h` (after press a closing message will be displayed and indication of any errors in the data collection will be presented)
 
@@ -99,7 +104,7 @@ At the top of `conversion.c` in the `/bin2csv` folder there are several post pro
 #define REMOVE_ZERO_DATA
 ```
 
-commenting/uncommenting these lines before running the `make test` command will result in different operation.
+commenting/uncommenting these lines before running the `make test` command will result in different operations.
 
 | Option              | Description                                                           |
 | ------------------- | --------------------------------------------------------------------- |
