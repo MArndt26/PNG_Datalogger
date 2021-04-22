@@ -1,6 +1,6 @@
 # PNG Datalogger
 
-Mitchell Arndt -- 22 April 2021
+Mitchell Arndt --22 April 2021
 
 # Project Description
 
@@ -12,11 +12,7 @@ Purdue Neurological Group (PNG) is involved in many different research projects,
 - differential amplifier / wheatstone bridge to convert the sensor resistance changes into changes in voltage.
 - SD card to record the data
 
-# Dataflow
-
-<div align="center" style="text-align:center">
-  <img src="docs/final/dataflow.svg" />
-</div>
+<div style="page-break-after: always"></div>
 
 # Testing SOP
 
@@ -122,6 +118,8 @@ commenting/uncommenting these lines before running the `make test` command will 
 `make clean` removes all .csv files and executables in `/bin2csv` directory
 
 `make veryclean` removes all .csv , executables, <b>and .bin</b> files in `/bin2csv` directory
+
+<div style="page-break-after: always"></div>
 
 # Current State
 
@@ -305,6 +303,11 @@ updated 4/22/2021
 - Around this time, I had started learning about Interrupt Service Routines (ISR) which are software events triggered by hardware timers. This seemed to fit our need directly as we could have a timer set for 2kHz to trigger a read for consistent data readings
   - the initial ISR design was a simple transfer of the code body of the program loop into the callback function for the ISR.
   - this meant that reads were consistent at 2kHz, but again did nothing to address the SD write bottleneck.
+
+## Spring 2021
+
+### The Home Stretch...
+
 - Frustrated from the ISR design proving to be a waste of time, I switched tracks to investigate a scheduling approach.
   - Processor scheduling is a staple of modern computing. The basic of this technique is to allow multiple processes to be split into "time slices" that can then be interleaved to create the illusion of concurrency.
     - For this project we have two processes: reading in analog measurements and writing out to the SD card
@@ -315,6 +318,8 @@ updated 4/22/2021
   - In retrospect, this system was bound to fail as it essentially didn't do much to buffer at all. There was one "overflow" buffer that was responsible for ALL the buffering. Flipping the two read and write buffers only allowed for simultaneous read and writes and didn't do anything to actually absorb the shock of SD write delays.
 - The final design was a complete rework of everything that came before. I took what I learned from my previous buffering approach and implemented a large circular buffer. This data structure allowed for continuous reads without the overhead of switching between and read and write buffer as before. Additionally, this provided a continuous stream of data for the SD write functionality.
   - At the time of writing this, the longest recorded test with this new system lasted 24 minutes of continuous 2kHz by 30 channels data collection with not a single data point missed.
+
+<div style="page-break-after: always"></div>
 
 ### Key Takeaways
 
@@ -329,6 +334,16 @@ updated 4/22/2021
 #### Buffers don't Solve Everything
 
 > This takeaway is similar to the previous. Buffering is another tool that can be thrown around without much thought. When applied incorrectly, a buffer is useless. I ran into this issue with my tri-staged buffer technique. I spend many hours debugging and "perfecting" a buffer solution that was ill conceived from the start. Even after developing the final circular buffer solution that proved successful, it is still important to be cautious about implementing a buffer. A buffer will only ever work if it is absorbing shock. What it does not do is correct an imbalance between the frequency of inputs and outputs. An example of this would be if the average write speed was less than the analog read speed. In this scenario, no amount of buffering would be able to solve the issue. Eventually, the buffer space would run out and the data would be corrupted. A core understanding of the problem must be a requisite before applying any tool.
+
+<div style="page-break-after: always"></div>
+
+# Dataflow
+
+<div align="center" style="text-align:center">
+  <img src="docs/final/dataflow.svg" />
+</div>
+
+<div style="page-break-after: always"></div>
 
 # Resources
 
