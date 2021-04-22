@@ -4,34 +4,110 @@
 #include "main.h"
 #include "png_adc.h"
 #include "png_mux.h"
+#include "png_serial.h"
 
-#ifdef SERIAL_DEBUG
-#define PRINT_BUF_MULT 5
-#else
-#define PRINT_BUF_MULT 2000
-#endif
+#define NUM_PRINT_LINES 15
+#define CIRC_BUFF_SIZE 400
 
-void buf_init();
-
-struct printBuf
+typedef struct printLine
 {
-    unsigned int time[PRINT_BUF_MULT];
-    uint16_t data[PRINT_BUF_MULT][ADC_CHAN * MUXED_CHAN];
-    uint16_t sync[PRINT_BUF_MULT];
-};
+    unsigned int time;
+    uint16_t data[ADC_CHAN * MUXED_CHAN];
+    uint16_t sync;
+} printLine;
 
-extern struct printBuf pB1;
-extern struct printBuf pB2;
-extern struct printBuf pBOver;
+typedef struct printBuf
+{
+    printLine line[NUM_PRINT_LINES];
+} printBuf;
 
-extern struct printBuf *wBuf;
-extern struct printBuf *rBuf;
+extern int lineIdx;  //make sure to init to 0
 
-#define PRINTBUF_INIT(X) struct printBuf X = {0}
+typedef struct circBuf
+{
+    printBuf pb[CIRC_BUFF_SIZE];
+    bool printReady[CIRC_BUFF_SIZE];
+    int wh; //write head (print)
+    int rh; //read head (adc read)
+} circBuf;
 
-extern volatile int preOverflowBuffer;
+extern circBuf cBuf;
 
-extern volatile int offset;
-extern volatile int buf_overflow_offset;
+// Function Headers
+void buf_init();
+void buf_clear();
+uint8_t* write();
+
+// Inline functions
+inline bool writeReady()
+{
+    return cBuf.printReady[cBuf.wh];
+}
+
+inline void nextwrite()
+{
+    cBuf.printReady[cBuf.wh] = 0;
+    cBuf.wh++;
+    if (cBuf.wh >= CIRC_BUFF_SIZE)
+    {
+        //overflow case
+        cBuf.wh = 0;
+    }
+}
+
+inline uint8_t* write()
+{
+    return (uint8_t*) &cBuf.pb[cBuf.wh];
+}
+
+inline void fill_data(int i, uint16_t value)
+{
+    //read adc value to data at index i
+    cBuf.pb[cBuf.rh].line[lineIdx].data[i] = value;
+}
+
+inline void fill_sync(uint16_t value)
+{
+    //read adc value to sync
+    cBuf.pb[cBuf.rh].line[lineIdx].sync = value;
+}
+
+inline void fill_time(unsigned int value)
+{
+    //read adc value to time
+    cBuf.pb[cBuf.rh].line[lineIdx].time = value;
+}
+
+inline bool bufferOverun()
+{
+    return (cBuf.rh == cBuf.wh && cBuf.printReady[cBuf.wh]);
+}
+
+inline void next_line() 
+{
+    //increment print line index
+    lineIdx++;   
+    if (lineIdx >= NUM_PRINT_LINES)
+    {
+        //reset line index
+        lineIdx = 0;
+        // set line pb print ready
+        cBuf.printReady[cBuf.rh] = 1;
+        // increment read head
+        cBuf.rh++;
+
+        if (cBuf.rh >= CIRC_BUFF_SIZE)
+        {
+            //overflow case
+            cBuf.rh = 0;
+        }
+#ifdef MAKE_ERRORS_FATAL
+        if (cBuf.wh == cBuf.rh) 
+        {
+            error("cBuf overwrite");
+        }
+#endif
+    }
+}
 
 #endif

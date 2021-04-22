@@ -22,4 +22,8 @@ extern elapsedMicros time;
 
 extern unsigned int adcTime;
 
+extern unsigned int startTime;  //data collection start time
+
+#define MAKE_ERRORS_FATAL
+
 #endif

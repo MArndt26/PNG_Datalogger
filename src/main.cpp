@@ -23,6 +23,8 @@ int numErrors = 0;
 
 elapsedMicros time;
 
+unsigned int startTime;
+
 unsigned int adcTime;
 
 void setup()
@@ -55,20 +57,8 @@ void loop()
 	case CREATE_FILE:
 	{
 		Serial.println(PSTR("Initializing Buffer..."));
-		for (unsigned int i = 0; i < sizeof(rBuf->time) / sizeof(rBuf->time[0]); i++)
-		{
-			rBuf->time[i] = 0;
-		}
+		buf_clear();  //reset buffer
 
-		for (int j = 0; j < PRINT_BUF_MULT; j++)
-		{
-			for (int i = 0; i < ADC_CHAN; i++)
-			{
-				rBuf->data[j][i] = 0;
-			}
-		}
-
-		offset = 0;
 		Serial.println(PSTR("Creating File..."));
 		int fNum = -1;
 		do
@@ -105,9 +95,7 @@ void loop()
 		Serial.println();
 #endif
 
-		numWrites = 0;
-		rBuf = &pB1;
-		wBuf = nullptr;
+		numWrites = 0; //reset number of writes
 
 		break;
 	}
@@ -123,71 +111,25 @@ void loop()
 #else
 		adcTimer.begin(adc_isr, SERIAL_DELAY);
 #endif
+		startTime = time;
 		logger_state = WRITE;
 		break;
 	}
 	case WRITE:
 	{
-		if (print_ready_flag)
+		if (writeReady())
 		{
-#ifdef SERIAL_DEBUG
-			debugAll("inside print_ready_flag");
-#endif
-
-			print_ready_flag = 0;
-
 			digitalToggleFast(LED_BUILTIN);
 
-			if (wBuf == nullptr)
-			{
-				error("wBuf is nullptr");
-			}
+			dataFile.write(write(), sizeof(printBuf));
 
-#ifndef SERIAL_DEBUG
-			dataFile.write((const uint8_t *)wBuf, sizeof(printBuf));
-#else
-			printBuffer("wBuf: ", wBuf);
-			printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, wBuf);
-
-			do
-			{
-				if (Serial.available())
-				{
-					char c = Serial.read();
-
-					Serial.println(c);
-
-					if (c == 'd')
-					{
-						stall_print = 0;
-					}
-				}
-			} while (stall_print); //wait for print to finish
-#endif
-			wBuf = nullptr; //clear write buffer
-
-			if (print_overflow_flag)
-			{
-				print_overflow_flag = 0;
-#ifdef SERIAL_DEBUG
-				debug("buf_overflow_offset: ", buf_overflow_offset);
-#endif
-				for (int i = buf_overflow_offset; i < PRINT_BUF_MULT; i++)
-				{
-					pBOver.time[i] = 0; //signify junk data with zeros for time
-				}
-
-#ifndef SERIAL_DEBUG
-				dataFile.write((const uint8_t *)&pBOver, sizeof(printBuf));
-#else
-				printBuffer("pBover: ", &pBOver);
-				printPBuf(PRINT_BUF_MULT - SERIAL_BUF_DISP, &pBOver);
-
-#endif
-				buf_overflow_offset = 0;
-			}
+			#ifdef SERIAL_DEBUG 
+			printCBuf(cBuf + cBufWriteIdx);
+			#endif
 
 			numWrites++;
+
+			nextwrite();
 		}
 		break;
 	}
@@ -195,55 +137,7 @@ void loop()
 	{
 		adcTimer.end();
 
-		Serial.println(PSTR("Halted Data Collection"));
-		Serial.println(PSTR("wrapping up file..."));
-
-		int finalOffset = offset;
-
-		debug(PSTR("before: "), finalOffset);
-
-		finalOffset -= SERIAL_BUF_DISP;
-
-		if (finalOffset < 0)
-		{
-			finalOffset = 0;
-		}
-		debug(PSTR("finalOffset: "), finalOffset);
-
-		Serial.println(PSTR("Flushing Write Buffer"));
-
-		if (rBuf == &pBOver)
-		{
-			Serial.println(PSTR("rBuf is pBOver"));
-		}
-		else if (rBuf == &pB1)
-		{
-			Serial.println(PSTR("rBuf is pB1"));
-		}
-		else if (rBuf == &pB2)
-		{
-			Serial.println(PSTR("rBuf is pB2"));
-		}
-		else
-		{
-			error(PSTR("invalid rBuf in close"));
-		}
-
-		for (int i = offset; i < PRINT_BUF_MULT; i++)
-		{
-			rBuf->time[i] = 0; //zero fill rest of data
-		}
-
-		debug("offset: ", offset);
-
-		//TODO: need to fix this so that you write out rest of buffered data
-		//		the issue now is that you could be forgetting to write data in overflow buffer
-
-		// dataFile.write((const uint8_t *)rBuf, sizeof(printBuf)); //write out rest of read buffer
-
-		numWrites++;
-
-		dataFile.close();
+		sd_wrap_up();
 
 		debug("number of errors: ", numErrors);
 

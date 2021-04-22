@@ -1,22 +1,46 @@
 #include "png_buf.h"
 
-// PRINTBUF_INIT(X);
-
-struct printBuf pB1;
-struct printBuf pB2;
-struct printBuf pBOver;
-
-struct printBuf *wBuf = nullptr;
-struct printBuf *rBuf = &pB1;
-
-volatile int preOverflowBuffer = 0;
-
-volatile int offset;
-volatile int buf_overflow_offset = 0;
+int lineIdx = 0;  //make sure to init to 0
+circBuf cBuf;
 
 void buf_init()
 {
-    Serial.print("Buffer Initialized with size [");
-    Serial.print(PRINT_BUF_MULT);
+    Serial.print("Buffer Initialized as [");
+    Serial.print(CIRC_BUFF_SIZE);
+    Serial.print("] print buffers with [");
+    Serial.print(NUM_PRINT_LINES);
+    Serial.print("] lines of size [");
+    Serial.print(sizeof(printBuf));
     Serial.println("]");
+
+    Serial.print("sizeof(printBuf) = ");
+    Serial.println(sizeof(printBuf));
+    Serial.print("sizeof(printLine) = ");
+    Serial.println(sizeof(printLine));
+    Serial.print("sizeof(circBuf) = ");
+    Serial.println(sizeof(circBuf));
+
+
+    buf_clear();
+}
+
+void buf_clear() 
+{
+    // reset read/write heads
+    cBuf.rh = 0;
+    cBuf.wh = 0;
+
+    // reset tracking stats
+    numWrites = 0;
+    numErrors = 0;
+
+    for (int i = 0; i < CIRC_BUFF_SIZE; i++)
+    {
+        cBuf.printReady[i] = 0;
+
+        for (int j = 0; j < NUM_PRINT_LINES; j++)
+        {
+            cBuf.pb[i].line[j].time = 0;    //clear time to signal invalid data
+        }
+    }
 }
