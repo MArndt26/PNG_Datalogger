@@ -1,4 +1,8 @@
-# PNG Datalogger Project Description
+# PNG Datalogger
+
+Mitchell Arndt -- 22 April 2021
+
+# Project Description
 
 Purdue Neurological Group (PNG) is involved in many different research projects, one of which involves measuring the effects of head trauma in athletics. More specifically, football helmet collisions. The goal of the project in regards to this repository is to design and implement high-speed data collection circuitry to measure the forces that take place during one of these football impacts (tackles). "Data collection circuitry" refers to the following:
 
