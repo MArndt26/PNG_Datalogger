@@ -1,4 +1,4 @@
-# Project Description
+# PNG Datalogger Project Description
 
 Purdue Neurological Group (PNG) is involved in many different research projects, one of which involves measuring the effects of head trauma in athletics. More specifically, football helmet collisions. The goal of the project in regards to this repository is to design and implement high-speed data collection circuitry to measure the forces that take place during one of these football impacts (tackles). "Data collection circuitry" refers to the following:
 
@@ -314,8 +314,17 @@ updated 4/22/2021
 
 ### Key Takeaways
 
-program loops suck
-buffers don't solve everything
+#### Program Loops Stink
+
+> For many of this project's iterations, the core structure of the code was an infinite program loop. This is the simplest construct and works well for basic projects. The main reason that this would not work for this project specifically is the variability of the execution time of a program loop structure. Due to the nature of modern computer architecture, the same block of looping code may take vastly different execution time due to branch mis-prediction, instruction - data caching, and IO latency. For an application where the consistency and reliability of the collected data is of utmost importance, one must look towards other embedded system design methods such as hardware-based timer interrupts or software-based time slice scheduling.
+
+#### Throwing Cool Technology at a Problem won't solve it
+
+> RTOS is an interesting method of solving microcontroller computing problems. The illusion that it provides of multi-threaded applications on a single core processor can open the door for many exciting new projects. The problem with the easy of access of this and other new open source software is that one can fall into the trap of improper tool use. In my case, I was trying to fit my circular problem into a square solution. RTOS allows for building complicated programs on modest hardware, but at the cost of some signification software overhead. Additionally, RTOS is a solution to programming two tasks that need to be performed simultaneously. For this project, I jumped to the conclusion that concurrent reads and writes were needed to solve the write time bottleneck issue. This turned out to be a false assumption. The issue was one of infrequent spikes in SD card write latency. Spending more time up font to fully understand a potential solution, including its drawbacks, not only will help to prevent wasted time, but it also improves one's understanding of the problem they are facing in the first place.
+
+#### Buffers don't Solve Everything
+
+> This takeaway is similar to the previous. Buffering is another tool that can be thrown around without much thought. When applied incorrectly, a buffer is useless. I ran into this issue with my tri-staged buffer technique. I spend many hours debugging and "perfecting" a buffer solution that was ill conceived from the start. Even after developing the final circular buffer solution that proved successful, it is still important to be cautious about implementing a buffer. A buffer will only ever work if it is absorbing shock. What it does not do is correct an imbalance between the frequency of inputs and outputs. An example of this would be if the average write speed was less than the analog read speed. In this scenario, no amount of buffering would be able to solve the issue. Eventually, the buffer space would run out and the data would be corrupted. A core understanding of the problem must be a requisite before applying any tool.
 
 # Resources
 
