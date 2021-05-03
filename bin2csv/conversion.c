@@ -4,11 +4,13 @@
 #include <string.h>
 #include <limits.h>
 
-#define CREATE_INT_FILE
-#define CREATE_VOLTAGE_FILE
+/** Defines are mangaged by Makefile **/
+
+// #define CREATE_INT_FILE
+// #define CREATE_VOLTAGE_FILE
 
 //Meta Data
-#define TRACK_EXTREME_DT
+// #define TRACK_EXTREME_DT
 // #define REMOVE_ZERO_DATA
 
 /**CONVERTS BINARY FILES TO CSV DATA
