@@ -8,3 +8,4 @@ bin2csv/.vscode*
 a.out
 *.csv
 bin2csv/conversion
+bin2csv/conversion.dSYM
