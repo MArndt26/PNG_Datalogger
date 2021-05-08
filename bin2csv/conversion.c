@@ -3,31 +3,18 @@
 #include <stdint.h>
 #include <string.h>
 #include <limits.h>
+#include <pthread.h>
 
 /** Defines are mangaged by Makefile **/
 
-// #define CREATE_INT_FILE
+#define CREATE_INT_FILE
 // #define CREATE_VOLTAGE_FILE
 
 //Meta Data
 // #define TRACK_EXTREME_DT
 // #define REMOVE_ZERO_DATA
 
-/**CONVERTS BINARY FILES TO CSV DATA
- * 
- * HOW TO:
- * - compile program into executable:
- *      gcc conversion.c
- * - run executable with command line args
- *      ./a.out <filename>
- *      - Note that filename doesn't include file extension
- *      - Example: filename => F0.BIN
- *          ./a.out F0
- * 
- *  UPDATE: use makefile for running tests
- *      Example Execution: make test args=F0
- * 
- */
+/** Run make help for execution instrutions **/
 
 #define ADC_CHAN 10
 #define MUXED_CHAN 3
@@ -39,30 +26,16 @@ typedef struct printLine
     uint16_t sync;
 } printLine;
 
-int main(int argc, char *argv[])
-{
-#if defined(CREATE_VOLTAGE_FILE) || defined(CREATE_INT_FILE)
-    if (argc != 2)
-    {
-        printf("Incorrect number of arguments!\n");
-        exit(1);
-    }
-    else
-    {
-        printf("Starting Data Conversion...\n");
-    }
+enum output_t {
+    INTEGER,
+    VOLTAGE
+};
 
-    char *filename = argv[1];
-    FILE *inFilePtr;
+FILE *inFilePtr;
+FILE *outVoltFilePtr;
+FILE *outIntFilePtr;
 
-#ifdef CREATE_VOLTAGE_FILE
-    FILE *outFilePtr;
-#endif
-
-#ifdef CREATE_INT_FILE
-    FILE *intOutFilePtr;
-#endif
-
+void createFiles(char * filename, char * fileTag, enum output_t outputType) {
     char *fileWithExtension = malloc(strlen(filename) + 10);
 
     sprintf(fileWithExtension, "%s.bin", filename);
@@ -74,65 +47,67 @@ int main(int argc, char *argv[])
         // Program exits if the file pointer returns NULL.
         exit(1);
     }
+    FILE *outFilePtr;
 
-#ifdef CREATE_VOLTAGE_FILE
-    sprintf(fileWithExtension, "%s.csv", filename);
+    switch (outputType) {
+        case INTEGER: {
+            outFilePtr = outIntFilePtr;
+            break;
+        }
+        case VOLTAGE: {
+            outFilePtr = outVoltFilePtr;
+            break;
+        }
+    }
+
+    sprintf(fileWithExtension, "%s(%s).csv", filename, fileTag);
     outFilePtr = fopen(fileWithExtension, "w");
+         
     printf("...Created %s\n", fileWithExtension);
-#endif
-
-#ifdef CREATE_INT_FILE
-    sprintf(fileWithExtension, "%s(int).csv", filename);
-    intOutFilePtr = fopen(fileWithExtension, "w");
-    printf("...Created %s\n", fileWithExtension);
-#endif
 
     int numCols = ADC_CHAN * MUXED_CHAN;
-#ifdef CREATE_VOLTAGE_FILE
-    float max_val = 4096.0 - 1; //max value is max_val - 1
-    float voltageRef = 3.3;
-#endif
 
     for (int i = 0; i < numCols; i++)
     {
         if (i == 0)
         {
-#ifdef CREATE_VOLTAGE_FILE
             fprintf(outFilePtr, "%10s, ", "time (us)");
             fprintf(outFilePtr, "%10s, ", "dt (us)");
             fprintf(outFilePtr, "%10s, ", "sync");
-#endif
-#ifdef CREATE_INT_FILE
-            fprintf(intOutFilePtr, "%10s, ", "time (us)");
-            fprintf(intOutFilePtr, "%10s, ", "dt (us)");
-            fprintf(intOutFilePtr, "%10s, ", "sync");
-#endif
         }
-#ifdef CREATE_VOLTAGE_FILE
-
-        fprintf(outFilePtr, "%8d, ", i);
-#endif
-#ifdef CREATE_INT_FILE
-        fprintf(intOutFilePtr, "%4d, ", i);
-#endif
+        fprintf(outFilePtr, "%4d, ", i);
     }
+    fprintf(outFilePtr, "\n"); //write header
 
-#ifdef CREATE_VOLTAGE_FILE
-    fprintf(outFilePtr, "\n");
-#endif
-#ifdef CREATE_INT_FILE
-    fprintf(intOutFilePtr, "\n"); //write integer
-#endif
+    free(fileWithExtension);
 
+    return;
+}
+
+void writeFiles(enum output_t outputType) {
     // struct printBuf pBuf;
     printLine pLine;
-#ifdef REMOVE_ZERO_DATA
-    int numDeletes = 0;
-#endif
+
+    FILE *outFilePtr;
+
+    switch (outputType) {
+        case INTEGER: {
+            outFilePtr = outIntFilePtr;
+            break;
+        }
+        case VOLTAGE: {
+            outFilePtr = outVoltFilePtr;
+            break;
+        }
+    }
+
 #ifdef TRACK_EXTREME_DT
     int maxDT = INT_MIN;
     int minDT = INT_MAX;
 #endif
+
+    float max_val = 4096.0 - 1; //max value is max_val - 1
+    float voltageRef = 3.3;
 
     int prevTime = 0;
 
@@ -140,11 +115,7 @@ int main(int argc, char *argv[])
     {
         int curTime = pLine.time;
 
-#ifdef REMOVE_ZERO_DATA
-        if (curTime != 0)
-        {
-#endif
-            int deltaT = curTime - prevTime;
+        int deltaT = curTime - prevTime;
 
 #ifdef TRACK_EXTREME_DT
             if (prevTime == 0)
@@ -163,42 +134,28 @@ int main(int argc, char *argv[])
                 }
             }
 #endif
-
-#ifdef CREATE_INT_FILE
-            fprintf(intOutFilePtr, "%10u, ", curTime);
-            fprintf(intOutFilePtr, "%10d, ", deltaT);
-            fprintf(intOutFilePtr, "%10d, ", pLine.sync);
-            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
-            {
-                fprintf(intOutFilePtr, "%4d, ", pLine.data[j]);
-            }
-            fprintf(intOutFilePtr, "\n");
-#endif
-
-#ifdef CREATE_VOLTAGE_FILE
-            fprintf(outFilePtr, "%10u, ", curTime);
-            fprintf(outFilePtr, "%10d, ", deltaT);
-            fprintf(outFilePtr, "%10d, ", pLine.sync);
-            for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
-            {
-                float voltage = pLine.data[j] / max_val * voltageRef; //calculate voltage
-                fprintf(outFilePtr, "%4.6f, ", voltage);
-            }
-            fprintf(outFilePtr, "\n");
-#endif
-
-            prevTime = pLine.time;
-#ifdef REMOVE_ZERO_DATA
-        }
-        else
+        fprintf(outFilePtr, "%10u, ", curTime);
+        fprintf(outFilePtr, "%10d, ", deltaT);
+        fprintf(outFilePtr, "%10d, ", pLine.sync);
+        for (int j = 0; j < ADC_CHAN * MUXED_CHAN; j++)
         {
-            numDeletes++;
+            switch (outputType) {
+                case INTEGER : {
+                    fprintf(outFilePtr, "%4d, ", pLine.data[j]);
+                    break;
+                }
+                case VOLTAGE : {
+                    float voltage = pLine.data[j] / max_val * voltageRef; //calculate voltage
+                    fprintf(outFilePtr, "%4.6f, ", voltage);
+                    break;
+                }
+            }
         }
-#endif
+        fprintf(outFilePtr, "\n");
+
+        prevTime = pLine.time;
     }
-#ifdef REMOVE_ZERO_DATA
-    printf("Number of rows deleted: %d\n", numDeletes);
-#endif
+
 #ifdef TRACK_EXTREME_DT
     printf("Max Delta T: %d\n", maxDT);
     printf("Min Delta T: %d\n", minDT);
@@ -206,19 +163,67 @@ int main(int argc, char *argv[])
 
     fclose(inFilePtr);
 
-#ifdef CREATE_VOLTAGE_FILE
     fclose(outFilePtr);
+
+    printf("Finished writing voltage file\n");
+
+}
+
+void *intThread(void *vargs) {
+    char *filename = (char*) vargs;
+
+    createFiles(filename, "int", INTEGER);
+    
+    writeFiles(INTEGER);
+
+    printf("Finished Writing Integer File\n");
+
+    return NULL;
+}
+void *voltThread(void *vargs) {
+    char *filename = (char*) vargs;
+
+    createFiles(filename, "volt", VOLTAGE);
+
+    writeFiles(VOLTAGE);
+
+    printf("Finished Writing Voltage File\n");
+
+    return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+#if defined(CREATE_VOLTAGE_FILE) || defined(CREATE_INT_FILE)
+    if (argc != 2)
+    {
+        printf("Incorrect number of arguments!\n");
+        exit(1);
+    }
+    else
+    {
+        printf("Starting Data Conversion...\n");
+    }
+
+    char *filename = argv[1];
+
+
+#ifdef CREATE_VOLTAGE_FILE
+    pthread_t vtid;
+    pthread_create (&vtid, NULL, voltThread, filename);
 #endif
 
 #ifdef CREATE_INT_FILE
-    fclose(intOutFilePtr);
+    pthread_t itid;
+    pthread_create (&itid, NULL, intThread, filename);
 #endif
 
-    free(fileWithExtension);
-
-    printf("Finished writing files\n");
-
-    return 0;
+#ifdef CREATE_VOLTAGE_FILE
+    pthread_join(vtid, NULL);
+#endif
+#ifdef CREATE_INT_FILE
+    pthread_join(itid, NULL);
+#endif
 
 #else
     printf("*********************WARNING*************************\n");

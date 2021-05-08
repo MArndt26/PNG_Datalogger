@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -pthread -g -Wall
 TARGET = conversion
 
 .DEFAULT_GOAL := help
