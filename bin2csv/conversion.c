@@ -5,9 +5,11 @@
 #include <limits.h>
 #include <pthread.h>
 
+#include <time.h>
+
 /** Defines are mangaged by Makefile **/
 
-#define CREATE_INT_FILE
+// #define CREATE_INT_FILE
 // #define CREATE_VOLTAGE_FILE
 
 //Meta Data
@@ -36,7 +38,7 @@ FILE *outVoltFilePtr;
 FILE *outIntFilePtr;
 
 void createFiles(char * filename, char * fileTag, enum output_t outputType) {
-    char *fileWithExtension = malloc(strlen(filename) + 10);
+    char *fileWithExtension = malloc(strlen(filename) + 11);
 
     sprintf(fileWithExtension, "%s.bin", filename);
 
@@ -51,18 +53,19 @@ void createFiles(char * filename, char * fileTag, enum output_t outputType) {
 
     switch (outputType) {
         case INTEGER: {
+            sprintf(fileWithExtension, "%s(%s).csv", filename, fileTag);
+            outIntFilePtr = fopen(fileWithExtension, "w");
             outFilePtr = outIntFilePtr;
             break;
         }
         case VOLTAGE: {
+            sprintf(fileWithExtension, "%s(%s).csv", filename, fileTag);
+            outVoltFilePtr = fopen(fileWithExtension, "w");
             outFilePtr = outVoltFilePtr;
             break;
         }
     }
-
-    sprintf(fileWithExtension, "%s(%s).csv", filename, fileTag);
-    outFilePtr = fopen(fileWithExtension, "w");
-         
+   
     printf("...Created %s\n", fileWithExtension);
 
     int numCols = ADC_CHAN * MUXED_CHAN;
@@ -117,22 +120,22 @@ void writeFiles(enum output_t outputType) {
 
         int deltaT = curTime - prevTime;
 
+        if (prevTime == 0)
+        {
+            deltaT = -999; //flagged as invalid data for first delta
+        }
 #ifdef TRACK_EXTREME_DT
-            if (prevTime == 0)
+        else //don't consider invalid data in meta
+        {
+            if (deltaT > maxDT)
             {
-                deltaT = -999; //flagged as invalid data for first delta
+                maxDT = deltaT;
             }
-            else //don't consider invalid data in meta
+            if (deltaT < minDT)
             {
-                if (deltaT > maxDT)
-                {
-                    maxDT = deltaT;
-                }
-                if (deltaT < minDT)
-                {
-                    minDT = deltaT;
-                }
+                minDT = deltaT;
             }
+        }
 #endif
         fprintf(outFilePtr, "%10u, ", curTime);
         fprintf(outFilePtr, "%10d, ", deltaT);
@@ -160,20 +163,14 @@ void writeFiles(enum output_t outputType) {
     printf("Max Delta T: %d\n", maxDT);
     printf("Min Delta T: %d\n", minDT);
 #endif
-
-    fclose(inFilePtr);
-
     fclose(outFilePtr);
-
-    printf("Finished writing voltage file\n");
-
 }
 
 void *intThread(void *vargs) {
     char *filename = (char*) vargs;
 
     createFiles(filename, "int", INTEGER);
-    
+
     writeFiles(INTEGER);
 
     printf("Finished Writing Integer File\n");
@@ -194,6 +191,8 @@ void *voltThread(void *vargs) {
 
 int main(int argc, char *argv[])
 {
+    clock_t begin = clock();
+
 #if defined(CREATE_VOLTAGE_FILE) || defined(CREATE_INT_FILE)
     if (argc != 2)
     {
@@ -211,11 +210,13 @@ int main(int argc, char *argv[])
 #ifdef CREATE_VOLTAGE_FILE
     pthread_t vtid;
     pthread_create (&vtid, NULL, voltThread, filename);
+    printf("Created Voltage Thread\n");
 #endif
 
 #ifdef CREATE_INT_FILE
     pthread_t itid;
     pthread_create (&itid, NULL, intThread, filename);
+    printf("Created Integer Thread\n");
 #endif
 
 #ifdef CREATE_VOLTAGE_FILE
@@ -224,6 +225,12 @@ int main(int argc, char *argv[])
 #ifdef CREATE_INT_FILE
     pthread_join(itid, NULL);
 #endif
+
+    fclose(inFilePtr);  //close inFile only
+
+clock_t end = clock();
+double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
+printf("Finished in: %f sec\n", time_spent);
 
 #else
     printf("*********************WARNING*************************\n");
