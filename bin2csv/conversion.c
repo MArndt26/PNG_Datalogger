@@ -14,7 +14,6 @@
 
 //Meta Data
 // #define TRACK_EXTREME_DT
-// #define REMOVE_ZERO_DATA
 
 /** Run make help for execution instrutions **/
 

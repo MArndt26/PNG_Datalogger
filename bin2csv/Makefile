@@ -4,12 +4,8 @@ TARGET = conversion
 
 .DEFAULT_GOAL := help
 
-ifeq ($(options), tz)
-	META_OPS = -DTRACK_EXTREME_DT -DREMOVE_ZERO_DATA
-else ifeq ($(options), t)
+ifeq ($(options), t)
 	META_OPS = -DTRACK_EXTREME_DT
-else ifeq ($(options), z)
-	META_OPS = -DREMOVE_ZERO_DATA
 else
 	META_OPS =
 endif
@@ -41,7 +37,7 @@ veryclean:
 
 help:
 	@echo ""
-	@echo "Hello $(USER), you forgot some targets."
+	@echo "Hello $(USER), it looks like you forgot some targets."
 	@echo " If you need instructions to use this Makefile:"
 	@echo "        'make <filename>.volt' to build and run voltage"
 	@echo "        'make <filename>.int' to build and integer voltage"
@@ -50,8 +46,6 @@ help:
 	@echo "        'make <filename>.<target> options=<option>'"
 	@echo "             where <option> is replaced with:"
 	@echo "               't' to track extreme deltas"
-	@echo "               'z' to remove zero data"
-	@echo "               'tz' to do both options"
 	@echo " Clean Rules:"
 	@echo "        'make clean' to remove executables and csv"
 	@echo "        'make veryclean' to remove executables, csv, and bin"
