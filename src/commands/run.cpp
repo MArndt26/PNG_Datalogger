@@ -4,7 +4,7 @@
 
 void run(int argc, char *argv[])
 {
-    printf("Initializing Buffer...\n");
+    printf("Initializing Buffer...\r\n");
     buf_clear(); //reset buffer
 
     char *filename;
@@ -28,7 +28,7 @@ void run(int argc, char *argv[])
 
         filename = finder;
 
-        printf("Using auto gen filename <%s>\n", filename);
+        printf("Using auto gen filename <%s>\r\n", filename);
         dataFile = SD.open(filename, FILE_WRITE);
     }
 
@@ -37,9 +37,9 @@ void run(int argc, char *argv[])
         //TODO: add better error identification with FAT return val
         error(PSTR("Error with Datafile: Endless loop"));
     }
-    printf("Writing to %s\n", filename);
+    printf("Writing to %s\r\n", filename);
 
-    printf("Running...\n");
+    printf("Running...\r\n");
 }
 
 // case CREATE_FILE:

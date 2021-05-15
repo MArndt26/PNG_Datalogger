@@ -66,19 +66,35 @@ void command_shell(void)
         i = 0;
         len = 0;
         c = 0;
-        printf("> ");
+        printf("\r> ");
 
         while (c != '\n')
         {
             if (Serial.available())
             {
                 c = Serial.read();
-                len++;
-                printf("%c", c); //echoback character
-                line[i++] = c;
+
+                if (c == '\b' || c == '\177')
+                {
+                    //backspace
+                    line[i--] = '\0';
+                    printf("\b \b");
+                }
+                else if (c == '\r' || c == '\n')
+                {
+                    c = '\n'; //convert \r into \n
+                    line[i] = '\0';
+                    printf("\r\n\r");
+                }
+                else
+                {
+                    len++;
+                    printf("%c", c); //echoback character
+                    line[i++] = c;
+                }
             }
         }
-        line[len - 2] = '\0'; //replace \n with \0
+        // line[len - 1] = '\0'; //replace \n with \0
 
         parse_command(line);
     }
