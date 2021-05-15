@@ -1,9 +1,5 @@
 #include "commands.h"
-
-void run(int argc, char *argv[])
-{
-    Serial.println("hello world");
-}
+#include "commands/run.h"
 
 // commands structure
 struct

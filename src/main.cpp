@@ -44,6 +44,8 @@ void setup()
 
 	sd_init();
 
+	printf("\n\n"); //provide visual spacing for start of prompt
+
 	command_shell();
 }
 
