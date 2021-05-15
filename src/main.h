@@ -22,8 +22,11 @@ extern elapsedMicros time;
 
 extern unsigned int adcTime;
 
-extern unsigned int startTime;  //data collection start time
+extern unsigned int startTime; //data collection start time
 
 #define MAKE_ERRORS_FATAL
+
+//useful shortcuts
+#define printf Serial.printf
 
 #endif

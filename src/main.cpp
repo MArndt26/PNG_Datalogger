@@ -13,6 +13,7 @@
 #include "png_serial.h"
 #include "png_states.h"
 #include "png_sync.h"
+#include "commands/commands.h"
 
 volatile int print_ready_flag = 0;
 volatile int sd_print_comp_flag = 1;
@@ -42,6 +43,8 @@ void setup()
 	buf_init();
 
 	sd_init();
+
+	command_shell();
 }
 
 void loop()
@@ -57,7 +60,7 @@ void loop()
 	case CREATE_FILE:
 	{
 		Serial.println(PSTR("Initializing Buffer..."));
-		buf_clear();  //reset buffer
+		buf_clear(); //reset buffer
 
 		Serial.println(PSTR("Creating File..."));
 		int fNum = -1;
@@ -123,9 +126,9 @@ void loop()
 
 			dataFile.write(write(), sizeof(printBuf));
 
-			#ifdef SERIAL_DEBUG 
+#ifdef SERIAL_DEBUG
 			printCBuf(cBuf + cBufWriteIdx);
-			#endif
+#endif
 
 			numWrites++;
 
