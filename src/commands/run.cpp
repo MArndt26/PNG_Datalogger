@@ -24,7 +24,7 @@ void run(int argc, char *argv[])
             //TODO: add timeout
             fNum++;
             sprintf(finder, "f%d.bin", fNum);
-        } while (SD.exists(fName));
+        } while (SD.exists(finder));
 
         filename = finder;
 
@@ -41,7 +41,7 @@ void run(int argc, char *argv[])
 
     numWrites = 0; //reset number of writes
 
-    printf("Running...\r\n");
+    printf("Running. Press any key to exit...\r\n");
 
 #ifndef SERIAL_DEBUG
     adcTimer.begin(adc_isr, SAMPLING_PERIOD);
