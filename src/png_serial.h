@@ -31,6 +31,8 @@ void blink(int times, int d);
 
 void debug(const char *msg, int val);
 
+void flush();
+
 void serial_init();
 
 #endif

@@ -63,6 +63,7 @@ void command_shell(void)
     for (;;)
     {
         //reinitialize on new command
+        digitalWriteFast(LED_BUILTIN, HIGH); //used for easy id of device powered on
         i = 0;
         len = 0;
         c = 0;
@@ -96,6 +97,7 @@ void command_shell(void)
         }
         // line[len - 1] = '\0'; //replace \n with \0
 
+        digitalWriteFast(LED_BUILTIN, LOW); //used for easy id of device powered on
         parse_command(line);
     }
 }

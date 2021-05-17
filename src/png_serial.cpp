@@ -7,6 +7,7 @@
 #include "png_sync.h"
 #include "png_sd.h"
 
+int user_interrupt_flag = 0;
 int stall_print = 0;
 
 void printCBuf(struct printLine *buf)
@@ -106,45 +107,58 @@ void debug(const char *msg, int val)
     Serial.println(val);
 }
 
-void serialEvent()
+//TODO: user serialEvent in same way as serialISR
+// void serialEvent()
+// {
+//     char c = Serial.read();
+
+//     Serial.println(c);
+//     Serial.println("wtf is the code doing here");
+
+//     user_interrupt_flag = 1;
+
+//     switch (c)
+//     {
+//     case 'c':
+//     {
+//         if (logger_state == IDLE)
+//         {
+//             logger_state = CREATE_FILE;
+//         }
+//         break;
+//     }
+//     case 's':
+//     {
+//         if (logger_state == FILE_LOADED)
+//         {
+//             logger_state = START_COLLECTION;
+//         }
+//         break;
+//     }
+//     case 'h':
+//     {
+//         if (logger_state == WRITE)
+//         {
+//             logger_state = CLOSE;
+//         }
+//         break;
+//     }
+// #ifdef SERIAL_DEBUG
+//     case 'd':
+//     {
+//         stall_print = !stall_print;
+//     }
+// #endif
+//     }
+// }
+
+void flush()
 {
-    char c = Serial.read();
-
-    Serial.println(c);
-
-    switch (c)
+    while (Serial.available())
     {
-    case 'c':
-    {
-        if (logger_state == IDLE)
-        {
-            logger_state = CREATE_FILE;
-        }
-        break;
-    }
-    case 's':
-    {
-        if (logger_state == FILE_LOADED)
-        {
-            logger_state = START_COLLECTION;
-        }
-        break;
-    }
-    case 'h':
-    {
-        if (logger_state == WRITE)
-        {
-            logger_state = CLOSE;
-        }
-        break;
-    }
-#ifdef SERIAL_DEBUG
-    case 'd':
-    {
-        stall_print = !stall_print;
-    }
-#endif
-    }
+        //flush serial buffer
+        Serial.read();
+    };
 }
 
 void serial_init()

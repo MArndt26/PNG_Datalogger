@@ -47,6 +47,7 @@ void setup()
 	printf("\n\n"); //provide visual spacing for start of prompt
 
 	command_shell();
+	printf("bad!!\n\n\n");
 }
 
 void loop()
