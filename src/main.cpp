@@ -62,10 +62,10 @@ void loop()
 
 	case CREATE_FILE:
 	{
-		Serial.println(PSTR("Initializing Buffer..."));
+		Serial1.println(PSTR("Initializing Buffer..."));
 		buf_clear(); //reset buffer
 
-		Serial.println(PSTR("Creating File..."));
+		Serial1.println(PSTR("Creating File..."));
 		int fNum = -1;
 		do
 		{
@@ -73,15 +73,15 @@ void loop()
 			sprintf(fName, PSTR("F%d.bin"), fNum);
 		} while (SD.exists(fName));
 
-		Serial.print(PSTR("Filename Created: "));
-		Serial.println(fName);
+		Serial1.print(PSTR("Filename Created: "));
+		Serial1.println(fName);
 
 		dataFile = SD.open(fName, FILE_WRITE);
 
 		if (dataFile)
 		{
-			Serial.print(PSTR("File Loaded: "));
-			Serial.println(fName);
+			Serial1.print(PSTR("File Loaded: "));
+			Serial1.println(fName);
 			logger_state = FILE_LOADED;
 		}
 		else
@@ -91,14 +91,14 @@ void loop()
 #ifdef SERIAL_DEBUG
 		for (int i = 0; i < 9; i++)
 		{
-			Serial.print(' ');
+			Serial1.print(' ');
 		}
 		for (int i = 0; i < 60; i++)
 		{
-			Serial.print(i);
-			Serial.print(',');
+			Serial1.print(i);
+			Serial1.print(',');
 		}
-		Serial.println();
+		Serial1.println();
 #endif
 
 		numWrites = 0; //reset number of writes

@@ -14,20 +14,26 @@ void adc_isr()
     digitalToggleFast(LED_BUILTIN);
 
     sync_count++;
-    if (sync_stage_count < sync_stage_count_switch) {
-        if (sync_count >= sync_pulse_period) {
+    if (sync_stage_count < sync_stage_count_switch)
+    {
+        if (sync_count >= sync_pulse_period)
+        {
             digitalToggleFast(SYNC_OUT_PIN);
             sync_count = 0;
             sync_stage_count++;
         }
-    } else {
-        if (sync_count >= sync_wait_period) {
+    }
+    else
+    {
+        if (sync_count >= sync_wait_period)
+        {
             sync_stage_count = 0;
             sync_count = 0;
         }
     }
 
-    if (bufferOverun()) {
+    if (bufferOverun())
+    {
         //skip measurement to save time
         numErrors++;
         return;
@@ -81,7 +87,7 @@ void adc_isr()
         //read in adc channels
         for (int i = 0; i < ADC_CHAN; i++)
         {
-            fill_data(ADC_CHAN * j + i, adc->analogRead(adc_pins[i]) );
+            fill_data(ADC_CHAN * j + i, adc->analogRead(adc_pins[i]));
         }
         //read in sync adc channel
         fill_sync(adc->analogRead(SYNC_IN_PIN));
@@ -116,10 +122,10 @@ void adc_init()
     adc->adc1->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED); // change the conversion speed
     adc->adc1->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);     // change the sampling speed
 #endif
-    Serial.print(PSTR("ADC Initialized with ["));
-    Serial.print(ADC_CHAN);
-    Serial.println(PSTR("] ADC channels"));
-    Serial.print(PSTR("Sampling at ["));
-    Serial.print(1e6 / SAMPLING_PERIOD);
-    Serial.println("] Hz");
+    Serial1.print(PSTR("ADC Initialized with ["));
+    Serial1.print(ADC_CHAN);
+    Serial1.println(PSTR("] ADC channels"));
+    Serial1.print(PSTR("Sampling at ["));
+    Serial1.print(1e6 / SAMPLING_PERIOD);
+    Serial1.println("] Hz");
 }

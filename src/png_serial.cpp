@@ -12,31 +12,31 @@ int stall_print = 0;
 
 void printCBuf(struct printLine *buf)
 {
-    Serial.print(buf->time);
+    Serial1.print(buf->time);
 
     int d = countDigits(buf->time);
 
     while (d < 15)
     {
-        Serial.print(PSTR(" "));
+        Serial1.print(PSTR(" "));
         d++;
     }
 
-    Serial.print(',');
+    Serial1.print(',');
     for (int i = 0; i < ADC_CHAN; i++)
     {
-        Serial.print(buf->data[i]);
+        Serial1.print(buf->data[i]);
 
-        Serial.print(',');
+        Serial1.print(',');
     }
-    Serial.println();
+    Serial1.println();
 }
 
 void error(const char *msg)
 {
     adcTimer.end();
 
-    Serial.println(msg);
+    Serial1.println(msg);
 
     debug("numWrites: ", numWrites);
 
@@ -46,7 +46,7 @@ void error(const char *msg)
 
     sd_wrap_up();
 
-    Serial.println("...Entering Endless Loop...");
+    Serial1.println("...Entering Endless Loop...");
 
     while (1)
     {
@@ -56,7 +56,7 @@ void error(const char *msg)
 
 void debugAll(const char *msg)
 {
-    Serial.println(msg);
+    Serial1.println(msg);
     debugFormat("stall print:", stall_print);
     debugFormat("print ready:", print_ready_flag);
     debugFormat("print overflow:", print_overflow_flag);
@@ -64,7 +64,7 @@ void debugAll(const char *msg)
     debugFormat("Read Offset: ", cBuf.rh);
     debugFormat("sync count:", sync_count);
     debugFormat("sync stage count:", sync_stage_count);
-    Serial.println();
+    Serial1.println();
 }
 
 void debugFormat(const char *msg, int val)
@@ -72,7 +72,7 @@ void debugFormat(const char *msg, int val)
     const int bufSize = 50;
     char buf[bufSize];
     sprintf(buf, "|%-20s|%-5d|\n", msg, val);
-    Serial.print(buf);
+    Serial1.print(buf);
 }
 
 void blink(int times, int d)
@@ -103,17 +103,17 @@ int countDigits(int n)
 
 void debug(const char *msg, int val)
 {
-    Serial.print(msg);
-    Serial.println(val);
+    Serial1.print(msg);
+    Serial1.println(val);
 }
 
 //TODO: user serialEvent in same way as serialISR
 // void serialEvent()
 // {
-//     char c = Serial.read();
+//     char c = Serial1.read();
 
-//     Serial.println(c);
-//     Serial.println("wtf is the code doing here");
+//     Serial1.println(c);
+//     Serial1.println("wtf is the code doing here");
 
 //     user_interrupt_flag = 1;
 
@@ -154,20 +154,23 @@ void debug(const char *msg, int val)
 
 void flush()
 {
-    while (Serial.available())
+    while (Serial1.available())
     {
         //flush serial buffer
-        Serial.read();
+        Serial1.read();
     };
 }
 
 void serial_init()
 {
     // Open serial communications and wait for port to open:
-    Serial.begin(115200);
-    while (!Serial)
-        ; // wait for serial port to connect.
-    Serial.print("Build Date/Time: ");
-    Serial.println(PSTR(__TIMESTAMP__));
-    Serial.println(PSTR("Serial Connected"));
+    Serial1.begin(115200);
+    while (!Serial1)
+    {
+        // wait for serial port to connect.
+        blink(2, 100);
+    }
+
+    printf("Build Date/Time: %s\r\n", __TIMESTAMP__);
+    printf("Serial Connected\r\n");
 }

@@ -6,21 +6,9 @@ circBuf cBuf;
 void buf_init()
 {
     printf("Buffer Initialized\r\n");
-    printf("   Circular Buffer <%d> bytes\r\n", sizeof(circBuf));
-    printf("   +--Print Buffer <%d> bytes (x%d)\r\n", sizeof(printBuf), CIRC_BUFF_SIZE);
-    printf("      +---Print Line <%d> bytes (x%d)\r\n", sizeof(printLine), NUM_PRINT_LINES);
-
-    printf("Buffer Initialized as <%d> print buffers with <%d> lines of size <%d>\r\n");
-    Serial.print("Buffer Initialized as [");
-    Serial.print(CIRC_BUFF_SIZE);
-    Serial.print("] print buffers with [");
-    Serial.print(NUM_PRINT_LINES);
-    Serial.print("] lines of size [");
-    Serial.print(sizeof(printBuf));
-    Serial.println("]");
-
-    Serial.print("sizeof(printBuf) = ");
-    Serial.println(sizeof(printBuf));
+    printf("Circular Buffer <%d> bytes\r\n", sizeof(circBuf));
+    printf("|-- Print Buffer <%d> bytes (x%d)\r\n", sizeof(printBuf), CIRC_BUFF_SIZE);
+    printf("|   |-- Print Line <%d> bytes (x%d)\r\n", sizeof(printLine), NUM_PRINT_LINES);
 
     buf_clear();
 }

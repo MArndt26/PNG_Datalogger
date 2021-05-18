@@ -27,6 +27,6 @@ extern unsigned int startTime; //data collection start time
 #define MAKE_ERRORS_FATAL
 
 //useful shortcuts
-#define printf Serial.printf
+#define printf Serial1.printf
 
 #endif

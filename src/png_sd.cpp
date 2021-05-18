@@ -7,33 +7,33 @@ char fName[FILE_BUF_SIZE];
 
 void sd_init()
 {
-    Serial.print(PSTR("Initializing SD card..."));
+    Serial1.print(PSTR("Initializing SD card..."));
 
     // see if the card is present and can be initialized:
     if (!SD.begin(chipSelect))
     {
-        Serial.println(PSTR("Card failed, or not present"));
+        Serial1.println(PSTR("Card failed, or not present"));
         // don't do anything more:
         return;
     }
 
-    Serial.println(PSTR("card initialized."));
+    Serial1.println(PSTR("card initialized."));
 }
 
 void sd_wrap_up()
 {
     unsigned int stopTime = time;
 
-    Serial.println(PSTR("Halted Data Collection"));
-    Serial.println(PSTR("wrapping up file..."));
+    Serial1.println(PSTR("Halted Data Collection"));
+    Serial1.println(PSTR("wrapping up file..."));
 
-    Serial.println(PSTR("Data Collection Time: "));
-    Serial.print(stopTime - startTime);
-    Serial.print(" micro or ");
-    Serial.print((stopTime - startTime) / 1e6);
-    Serial.println(" sec");
+    Serial1.println(PSTR("Data Collection Time: "));
+    Serial1.print(stopTime - startTime);
+    Serial1.print(" micro or ");
+    Serial1.print((stopTime - startTime) / 1e6);
+    Serial1.println(" sec");
 
-    Serial.println("Writing Remaining Buffer...");
+    Serial1.println("Writing Remaining Buffer...");
 
     while (writeReady())
     {
@@ -44,7 +44,7 @@ void sd_wrap_up()
         nextwrite();
     }
 
-	dataFile.close();
+    dataFile.close();
 
-    Serial.println("Buffer Flushed");
+    Serial1.println("Buffer Flushed");
 }

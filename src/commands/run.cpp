@@ -55,7 +55,7 @@ void run(int argc, char *argv[])
     printf("\r\n");
 
     //write loop
-    while (!Serial.available())
+    while (!Serial1.available())
     {
         if (writeReady())
         {
@@ -68,8 +68,6 @@ void run(int argc, char *argv[])
             nextwrite();
         }
     }
-
-    printf("num writes: %d\n", numWrites);
 
     // close out file
     adcTimer.end();

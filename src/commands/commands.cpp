@@ -71,9 +71,9 @@ void command_shell(void)
 
         while (c != '\n')
         {
-            if (Serial.available())
+            if (Serial1.available())
             {
-                c = Serial.read();
+                c = Serial1.read();
 
                 if (c == '\b' || c == '\177')
                 {
